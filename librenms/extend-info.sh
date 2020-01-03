@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Output various informational values.
+# Output various informational values for LibreNMS.
 
 # Dependencies:
 # bash
