@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This is an include file for librenms-etc-snmp scripts, with common functions and variables.
+# An include file for librenms-etc-snmp scripts, with common functions and variables.
 
 # Dependencies:
 # bash
@@ -77,7 +77,7 @@ function cleanup() {
 function debugecho() {
     local debug_message=(${@})
 
-    if [ ${#debug_message} -eq 0 ]; then
+    if [ ${#Debug} -eq 0 ] || [ ${Debug} -eq 0 ] || [ ${#debug_message} -eq 0 ]; then
         return
     fi
 
