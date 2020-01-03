@@ -196,7 +196,7 @@ if ( $call_rndc ){
 }
 
 my $bw=File::ReadBackwards->new( $stats_file ) or
-	die( "con't read '$stats_file': $!" );
+	die( "can't read '$stats_file': $!" );
 
 #read backwards till we find the start of the last stats entry
 my $read=1;
