@@ -62,7 +62,7 @@ if [ "$1" == "distro" ]; then
         "${Dirname}/distro"
         exit $?
     else
-        echo "No distro"
+        exit 1
     fi
 fi
 
@@ -72,20 +72,36 @@ if [ "$1" == "hardware" ]; then
         cat /sys/devices/virtual/dmi/id/product_name
         exit $?
     else
-        echo "No hardware"
+        if [ -r /var/sysinfo/board_name ]; then
+            cat /var/sysinfo/board_name
+            exit $?
+        else
+            if [ -r /sys/firmware/devicetree/base/compatible ]; then
+                cat /sys/firmware/devicetree/base/compatible
+                exit $?
+            else
+                exit 1
+            fi
+        fi
     fi
 fi
 
 # .1.3.6.1.4.1.2021.7890.3 manufacturer (or vendor)
 if [ "$1" == "manufacturer" ] || [ "$1" == "vendor" ]; then
-    if [ -r /sys/devices/virtual/dmi/id/sys_vendor ]; then
+    if [ -s /sys/devices/virtual/dmi/id/sys_vendor ]; then
         cat /sys/devices/virtual/dmi/id/sys_vendor
         exit $?
     else
-        if [ "$1" == "manufacturer" ]; then
-            echo "No manufacturer"
+        if [ -s /var/sysinfo/model ]; then
+            cat /var/sysinfo/model
+            exit $?
         else
-            echo "No vendor"
+            if [ -s /sys/firmware/devicetree/base/model ]; then
+                cat /sys/firmware/devicetree/base/model
+                exit $?
+            else
+                exit 1
+            fi
         fi
     fi
 fi
@@ -96,7 +112,7 @@ if [ "$1" == "serial" ]; then
         cat /sys/devices/virtual/dmi/id/product_serial
         exit $?
     else
-        echo "No serial"
+        exit 1
     fi
 fi
 
