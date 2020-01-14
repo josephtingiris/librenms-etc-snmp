@@ -76,7 +76,7 @@ else
     exit 1
 fi
 
-wget "http://localhost//server-status?auto" -o /dev/null -O ${Tmp_File} &> /dev/null # wget is slightly faster than curl
+wget "http://localhost/server-status?auto" -o /dev/null -O ${Tmp_File} &> /dev/null # wget is slightly faster than curl
 RC=$?
 if [ ${RC} -ne 0 ]; then
     curl --silent --fail "http://localhost/server-status?auto" -o ${Tmp_File} &> /dev/null
