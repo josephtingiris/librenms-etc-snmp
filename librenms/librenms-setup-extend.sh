@@ -3,7 +3,8 @@
 # This script outputs apache server-status output for LibreNMS.
 
 # Dependencies:
-# curl or wget
+# curl
+# realpath
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
@@ -27,35 +28,130 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 #
-# Local Functions
-#
-
-#
 # Functions
 #
 
-# see extend.include.sh
+function usage() {
+    printf "\nusage: $0 [check|install]\n\n"
+    exit 1
+}
+
+# for more, see extend.include.sh
 
 #
 # Globals
 #
 
-# Debug=on; use environment, i.e. Debug=on apache-stats.sh
-if [ "${DEBUG}" != "" ]; then
-    Debug=${DEBUG}
-else
-    if [ "${Debug}" != "" ]; then
-        Debug=${Debug}
-    fi
+Basename=${0##*/}
+Dirname=${0%/*}
+Dirname=$(realpath "${Dirname}" 2> /dev/null)
+
+if [ ${#Dirname} -eq 0 ]; then
+    echo "aborting, realpath not found executable"
 fi
 
 #
 # Main
 #
 
-# clean up
-if [ -f ${Tmp_File} ]; then
-    rm -f ${Tmp_File} &> /dev/null
+# source extend-include.sh or exit
+if [ -r "${Dirname}/extend-include.sh" ]; then
+    source "${Dirname}/extend-include.sh"
+else
+    "aborting .. can't source extend-include.sh"
+    exit 1
 fi
 
+debugecho "Basename = ${Basename}" 10
+debugecho "Dirname = ${Dirname}" 10
+
+Snmpd_Conf=/etc/snmp/snmpd.conf
+if [ ! -w "${Snmpd_Conf}" ]; then
+    aborting "${Snmpd_Conf} file not writable"
+fi
+
+if [ "$1" == "install" ]; then
+    Install=0 # true
+else
+    if [ "$1" == "check" ] || [ "$1" == "" ]; then
+        Install=1 # false
+    else
+        usage
+    fi
+fi
+
+if [ -x "${Dirname}"/extend-info.sh ]; then
+    for Extend_Name in distro hardware manufacturer serial; do
+        "${Dirname}"/extend-info.sh "${Extend_Name}" &> /dev/null
+        Extend_RC=$?
+        if [ ${Extend_RC} -eq 0 ]; then
+            if [ "${Extend_Name}" == "distro" ]; then
+                Extend_OID=".1.3.6.1.4.1.2021.7890.1"
+            fi
+
+            if [ "${Extend_Name}" == "hardware" ]; then
+                Extend_OID=".1.3.6.1.4.1.2021.7890.2"
+            fi
+
+            if [ "${Extend_Name}" == "manufacturer" ]; then
+                Extend_OID=".1.3.6.1.4.1.2021.7890.3"
+            fi
+
+            if [ "${Extend_Name}" == "serial" ]; then
+                Extend_OID=".1.3.6.1.4.1.2021.7890.4"
+            fi
+
+            if [ ${#Extend_OID} -gt 0 ]; then
+                if [ ${Install} -eq 0 ]; then
+                    sed -Ei "/extend(.*)${Extend_OID}[[:space:]]/d" "${Snmpd_Conf}"
+                    if [ $? -eq 0 ]; then
+                        echo "extend ${Extend_OID} ${Extend_Name} '${Dirname}/extend-info.sh ${Extend_Name}'" >> "${Snmpd_Conf}"
+                        if [ $? -eq 0 ]; then
+                            echo "+ extend ${Extend_OID} ${Extend_Name} installed."
+                        else
+                            echo "+ extend ${Extend_OID} ${Extend_Name} failed to install."
+                        fi
+                    fi
+                else
+                    echo "+ extend ${Extend_OID} ${Extend_Name} returns success."
+                fi
+            fi
+        fi
+        unset -v Extend_OID
+    done
+fi
+unset -v Extend_Name Extend_RC
+
+while read Extend_Check; do
+    Extend_Basename=${Extend_Check##*/}
+    Extend_Name=${Extend_Basename}
+    Extend_Name=${Extend_Name//.bash/}
+    Extend_Name=${Extend_Name//.sh/}
+    Extend_Name=${Extend_Name//.php/}
+    Extend_Name=${Extend_Name//.pl/}
+    Extend_Conf="${Dirname}/${Extend_Name}.conf"
+    Extend_Name=${Extend_Name/extend-/}
+    debugecho "Extend_Check = ${Extend_Check} (${Extend_Basename}) [${Extend_Name}]"
+    ${Extend_Check} &> /dev/null
+    Extend_RC=$?
+    if [ ${Extend_RC} -eq 0 ]; then
+        if [ ${Install} -eq 0 ]; then
+            if [ -r "${Extend_Conf}" ]; then
+                Extend_Check_Args=" -c ${Extend_Conf}"
+            fi
+            sed -Ei "/extend(.*)${Extend_Name}[[:space:]]/d" "${Snmpd_Conf}"
+            if [ $? -eq 0 ]; then
+                echo "extend ${Extend_Name} '${Extend_Check}${Extend_Check_Args}'" >> "${Snmpd_Conf}"
+                if [ $? -eq 0 ]; then
+                    echo "+ extend ${Extend_Name} installed."
+                else
+                    echo "+ extend ${Extend_Name} failed to install."
+                fi
+            fi
+        else
+            echo "+ extend ${Extend_Name} returns success."
+        fi
+    fi
+    unset -v Extend_Check_Args Extend_Basename Extend_Name Extend_RC
+done <<< "$(find "${Dirname}" -name "extend-*" | egrep -ve 'extend-include|extend-info|conf$|example|cfg$' | xargs -r ls -1)"
 
