@@ -55,7 +55,17 @@ else
     exit 1
 fi
 
-if [ "$1" == "client" ]; then
+if [ "${Basename}" == "extend-nfs-client.sh" ]; then
+    Client_Or_Server="client"
+else
+    if [ "${Basename}" == "extend-nfs-server.sh" ]; then
+        Client_Or_Server="server"
+    else
+        Client_Or_Server="$1"
+    fi
+fi
+
+if [ "${Client_Or_Server}" == "client" ]; then
     if [ -r "/proc/net/rpc/nfs" ]; then
         cat /proc/net/rpc/nfs
         exit $?
@@ -64,7 +74,7 @@ if [ "$1" == "client" ]; then
     fi
 fi
 
-if [ "$1" == "server" ]; then
+if [ "${Client_Or_Server}" == "server" ]; then
     if [ -r "/proc/net/rpc/nfsd" ]; then
         cat /proc/net/rpc/nfsd
         exit $?
