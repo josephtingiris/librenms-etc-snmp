@@ -53,4 +53,6 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 set -o pipefail
 
-echo STATS | ncat localhost 42217 2> /dev/null | grep -E ":.[0-9]+$" | awk '{print $NF}'
+echo "<<<rrdcached>>>"
+echo STATS | ncat localhost 42217 2> /dev/null
+exit $?
