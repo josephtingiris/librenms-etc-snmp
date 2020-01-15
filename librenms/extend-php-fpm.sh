@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Ouput php-fpm status values for LibreNMS.
+# Output php-fpm status values for LibreNMS.
 
 # Dependencies:
 # bash
