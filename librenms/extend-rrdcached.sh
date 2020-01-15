@@ -4,6 +4,7 @@
 
 # Dependencies:
 # bash
+# ncat
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
@@ -50,5 +51,6 @@ fi
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
-(echo STATS; sleep 1; echo exit) | telnet localhost 42217 2> /dev/null | grep -E ":.[0-9]+$" | awk '{print $NF}'
+set -o pipefail
 
+echo STATS | ncat localhost 42217 2> /dev/null | grep -E ":.[0-9]+$" | awk '{print $NF}'
