@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This script outputs apache server-status output for LibreNMS.
+# This script runs /etc/snmp/librenms scripts and adds extend entries to snmpd.conf.
 
 # Dependencies:
 # curl
