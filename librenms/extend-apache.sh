@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Ouput apache server-status values for LibreNMS.
+# Output apache server-status values for LibreNMS.
 
 # Dependencies:
 # bash
