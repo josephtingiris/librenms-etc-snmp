@@ -24,8 +24,6 @@
 # 20200103, joseph.tingiris@gmail.com, created
 #
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-
 #
 # Functions
 #
@@ -49,6 +47,8 @@ if [ -r "${Dirname}/extend-include.sh" ]; then
 else
     exit 1
 fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 if [ -r /proc/uptime ]; then
     cat /proc/uptime

@@ -24,8 +24,6 @@
 # 20200103, joseph.tingiris@gmail.com, created
 #
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/asterisk/sbin:/opt/asterisk/bin:/opt/dps/sbin:/opt/dps/bin
-
 #
 # Functions
 #
@@ -49,6 +47,8 @@ if [ -r "${Dirname}/extend-include.sh" ]; then
 else
     exit 1
 fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/asterisk/sbin:/opt/asterisk/bin:/opt/dps/sbin:/opt/dps/bin
 
 debugecho "Basename=${Basename}" 1
 debugecho "Dirname=${Dirname}" 2

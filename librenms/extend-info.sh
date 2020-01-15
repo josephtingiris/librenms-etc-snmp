@@ -24,8 +24,6 @@
 # 20200103, joseph.tingiris@gmail.com, created
 #
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-
 #
 # Functions
 #
@@ -54,6 +52,8 @@ if [ -r "${Dirname}/extend-include.sh" ]; then
 else
     exit 1
 fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 # .1.3.6.1.4.1.2021.7890.1 distro
 if [ "$1" == "distro" ]; then

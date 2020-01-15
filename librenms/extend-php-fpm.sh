@@ -24,8 +24,6 @@
 # 20200102, joseph.tingiris@gmail.com, modified original LibreNMS phpfpmsp script
 #
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-
 #
 # Globals
 #
@@ -78,6 +76,8 @@ if [ -r "${Dirname}/extend-include.sh" ]; then
 else
     exit 1
 fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 phpfpm_response=($(curl --silent --fail ${opts} "${url}" 2> /dev/null))
 [ $? -ne 0 -o "${#phpfpm_response[@]}" -eq 0 ] && exit 1

@@ -24,8 +24,6 @@
 # 20200103, joseph.tingiris@gmail.com, created
 #
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-
 #
 # Init
 #
@@ -125,6 +123,8 @@ fi
 [[ ${#Dirname} -eq 0 ]] && Dirname=${0%/*}
 
 Tmp_File="/tmp/${Basename}.tmp"
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 #
 # Main

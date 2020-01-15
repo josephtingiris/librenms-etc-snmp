@@ -25,8 +25,6 @@
 # 20200103, joseph.tingiris@gmail.com, created
 #
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-
 #
 # Functions
 #
@@ -61,6 +59,8 @@ else
     "aborting .. can't source extend-include.sh"
     exit 1
 fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 debugecho "Basename = ${Basename}" 10
 debugecho "Dirname = ${Dirname}" 10

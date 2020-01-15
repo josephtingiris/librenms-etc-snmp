@@ -25,8 +25,6 @@
 # 20200102, joseph.tingiris@gmail.com, created
 #
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
-
 #
 # Functions
 #
@@ -75,6 +73,8 @@ if [ -r "${Dirname}/extend-include.sh" ]; then
 else
     exit 1
 fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 wget "http://localhost/server-status?auto" -o /dev/null -O ${Tmp_File} &> /dev/null # wget is slightly faster than curl
 RC=$?

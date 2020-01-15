@@ -30,6 +30,11 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 # Functions
 #
 
+function usage() {
+    printf "\nusage: $0\n\n"
+    exit 2
+}
+
 # for more, see extend.include.sh
 
 #
@@ -49,6 +54,8 @@ if [ -r "${Dirname}/extend-include.sh" ]; then
 else
     exit 1
 fi
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 debugecho "Basename=${Basename}" 1
 debugecho "Dirname=${Dirname}" 2
