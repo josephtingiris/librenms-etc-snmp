@@ -131,14 +131,17 @@ while read Extend_Check; do
     Extend_Name=${Extend_Name//.pl/}
     Extend_Conf="${Dirname}/${Extend_Name}.conf"
     Extend_Name=${Extend_Name/extend-/}
-    debugecho "Extend_Check = ${Extend_Check} (${Extend_Basename}) [${Extend_Name}]"
-    ${Extend_Check} &> /dev/null
+
+    if [ -r "${Extend_Conf}" ]; then
+        Extend_Check_Args=" -c ${Extend_Conf}"
+    fi
+
+    debugecho "Extend_Check = ${Extend_Check}${Extend_Check_Args} (${Extend_Basename}) [${Extend_Name}]"
+
+    ${Extend_Check}${Extend_Check_Args} &> /dev/null
     Extend_RC=$?
     if [ ${Extend_RC} -eq 0 ]; then
         if [ ${Install} -eq 0 ]; then
-            if [ -r "${Extend_Conf}" ]; then
-                Extend_Check_Args=" -c ${Extend_Conf}"
-            fi
             sed -Ei "/extend(.*)${Extend_Name}[[:space:]]/d" "${Snmpd_Conf}"
             if [ $? -eq 0 ]; then
                 echo "extend ${Extend_Name} '${Extend_Check}${Extend_Check_Args}'" >> "${Snmpd_Conf}"
