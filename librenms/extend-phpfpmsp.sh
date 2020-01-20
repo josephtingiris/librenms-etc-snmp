@@ -77,7 +77,9 @@ else
     exit 1
 fi
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
+if [ -r "${Extend_Include_Env}" ]; then
+    source "${Extend_Include_Env}"
+fi
 
 phpfpm_response=($(curl --silent --fail ${opts} "${url}" 2> /dev/null))
 [ $? -ne 0 -o "${#phpfpm_response[@]}" -eq 0 ] && exit 1

@@ -122,6 +122,8 @@ fi
 [[ ${#Basename} -eq 0 ]] && Basename=${0##*/}
 [[ ${#Dirname} -eq 0 ]] && Dirname=${0%/*}
 
+Extend_Include_Env="${Dirname}/${Basename%.*}-include.env"
+
 Tmp_File="/tmp/${Basename}.tmp"
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
@@ -132,5 +134,6 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 debugecho ${BASH_SOURCE} sourced
 debugecho "Tmp_File = ${Tmp_File}"
+debugecho "Extend_Include_Env = ${Extend_Include_Env}"
 
 cleanup "${Tmp_File}" # start with a clean tmp file

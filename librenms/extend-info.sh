@@ -53,7 +53,9 @@ else
     exit 1
 fi
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
+if [ -r "${Extend_Include_Env}" ]; then
+    source "${Extend_Include_Env}"
+fi
 
 # .1.3.6.1.4.1.2021.7890.1 distro
 if [ "$1" == "distro" ]; then

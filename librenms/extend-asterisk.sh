@@ -48,7 +48,9 @@ else
     exit 1
 fi
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/asterisk/sbin:/opt/asterisk/bin:/opt/dps/sbin:/opt/dps/bin
+if [ -r "${Extend_Include_Env}" ]; then
+    source "${Extend_Include_Env}"
+fi
 
 debugecho "Basename=${Basename}" 1
 debugecho "Dirname=${Dirname}" 2

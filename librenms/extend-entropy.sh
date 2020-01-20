@@ -48,7 +48,10 @@ else
     exit 1
 fi
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
+if [ -r "${Extend_Include_Env}" ]; then
+    source "${Extend_Include_Env}"
+fi
+
 
 if [ -r /proc/sys/kernel/random/entropy_avail ]; then
     cat /proc/sys/kernel/random/entropy_avail

@@ -60,7 +60,9 @@ else
     exit 1
 fi
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin
+if [ -r "${Extend_Include_Env}" ]; then
+    source "${Extend_Include_Env}"
+fi
 
 debugecho "Basename = ${Basename}" 10
 debugecho "Dirname = ${Dirname}" 10
