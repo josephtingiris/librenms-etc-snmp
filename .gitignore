@@ -1,2 +1,6 @@
-snmpd.conf
-snmptrapd.conf
+*
+!.gitignore
+!README.md
+!LICENSE.txt
+!snmpd.conf.example*
+!/librenms/

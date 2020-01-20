@@ -1,1 +1,4 @@
-extend-bind.conf
+!*
+*.conf
+*.env
+extend-custom*
