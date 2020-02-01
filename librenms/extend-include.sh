@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# An include file for librenms-etc-snmp scripts, with common functions and variables.
+# An include file for librenms-etc-snmp scripts, with common functions and variables
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# bash
+# bash v4+
 
 #
 # 20200103, joseph.tingiris@gmail.com, created
@@ -28,9 +28,16 @@
 # Init
 #
 
+if [ "${BASH_VERSINFO}" == "" ]; then
+    printf "\naborting ... this script requires bash.\n\n"; exit 1
+fi
+
+if [ "${BASH_VERSINFO}" -lt 4 ]; then
+    printf "\naborting ... this script requires bash version 4 or greater.\n\n"; exit 1
+fi
+
 if [ "${0}" == "${BASH_SOURCE}" ]; then
-    # this script was executed, it must be sourced
-    exit 1
+    printf "\naborting ... this script was executed, it must be sourced\n\n"; exit 1
 fi
 
 #
@@ -58,7 +65,7 @@ function cleanup() {
     local files
     for file in "${files[@]}"; do
         if [ -f "${file}" ]; then
-            debugecho removing ${file} 20
+            debugecho "removing ${file}" 20
             rm -f "${file}" &> /dev/null
             if [ $? -ne 0 ]; then
                 error "'${file}' failed to rm"
@@ -122,6 +129,12 @@ fi
 [[ ${#Basename} -eq 0 ]] && Basename=${0##*/}
 [[ ${#Dirname} -eq 0 ]] && Dirname=${0%/*}
 
+Dirname=$(readlink -f "${Dirname}" 2> /dev/null)
+
+if [ ${#Dirname} -eq 0 ]; then
+    aborting "invalid Dirname (readlink not found?)"
+fi
+
 Extend_Include_Env="${Dirname}/${Basename%.*}-include.env"
 
 Tmp_File="/tmp/${Basename}.tmp"
@@ -132,8 +145,11 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 # Main
 #
 
-debugecho ${BASH_SOURCE} sourced
-debugecho "Tmp_File = ${Tmp_File}"
-debugecho "Extend_Include_Env = ${Extend_Include_Env}"
+debugecho "${BASH_SOURCE} sourced" 1
+debugecho "Tmp_File = ${Tmp_File}" 2
+debugecho "Extend_Include_Env = ${Extend_Include_Env}" 3
+
+debugecho "Basename = ${Basename}" 10
+debugecho "Dirname = ${Dirname}" 10
 
 cleanup "${Tmp_File}" # start with a clean tmp file
