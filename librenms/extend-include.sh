@@ -135,7 +135,7 @@ if [ ${#Dirname} -eq 0 ]; then
     aborting "invalid Dirname (readlink not found?)"
 fi
 
-Extend_Include_Env="${Dirname}/${Basename%.*}-include.env"
+Extend_Include_Env="${Dirname}/${Basename%.*}.env"
 
 Tmp_File="/tmp/${Basename}.tmp"
 
