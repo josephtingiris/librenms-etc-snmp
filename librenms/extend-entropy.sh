@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Output /proc/sys/kernel/random/entropy_avail for LibreNMS.
+# Output /proc/sys/kernel/random/entropy_avail for LibreNMS
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# none
+# extend-include.sh
 
 #
 # 20200114, joseph.tingiris@gmail.com, created

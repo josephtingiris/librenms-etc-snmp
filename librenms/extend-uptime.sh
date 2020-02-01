@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# bash
+# extend-include.sh
 
 #
 # 20200103, joseph.tingiris@gmail.com, created

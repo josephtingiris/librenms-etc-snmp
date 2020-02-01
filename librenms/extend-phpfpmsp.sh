@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# bash
+# extend-include.sh
 # curl or wget
 # pm.status_path = /status # in php-fpm.d/www.conf
 
@@ -96,7 +96,7 @@ if [[ "${phpfpm_response[0]}" != "pool:" \
     ]]
 then
     debugecho "invalid response from phpfpm status server: ${phpfpm_response[*]}"
-    exit 1;
+    exit 1
 fi
 
 phpfpm_pool="${phpfpm_response[1]}"

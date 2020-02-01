@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# realpath
+# extend-include.sh
 
 #
 # 20200103, joseph.tingiris@gmail.com, created
@@ -41,11 +41,6 @@ function usage() {
 
 Basename=${0##*/}
 Dirname=${0%/*}
-Dirname=$(realpath "${Dirname}" 2> /dev/null)
-
-if [ ${#Dirname} -eq 0 ]; then
-    echo "aborting, realpath not found executable"
-fi
 
 #
 # Main
@@ -62,9 +57,6 @@ fi
 if [ -r "${Extend_Include_Env}" ]; then
     source "${Extend_Include_Env}"
 fi
-
-debugecho "Basename = ${Basename}" 10
-debugecho "Dirname = ${Dirname}" 10
 
 if [ "$1" == "install" ]; then
     Install=0 # true
@@ -84,7 +76,7 @@ if [ ! -w "${Snmpd_Conf}" ]; then
     aborting "${Snmpd_Conf} file not writable"
 fi
 
-debugecho "Snmpd_Conf = ${Snmpd_Conf}"
+debugecho "Snmpd_Conf = ${Snmpd_Conf}" 5
 
 if [ -x "${Dirname}"/extend-info.sh ]; then
     for Extend_Name in distro hardware manufacturer serial; do
@@ -142,7 +134,7 @@ while read Extend_Check; do
         Extend_Check_Args=" -c ${Extend_Conf}"
     fi
 
-    debugecho "Extend_Check = ${Extend_Check}${Extend_Check_Args} (${Extend_Basename}) [${Extend_Name}]"
+    debugecho "Extend_Check = ${Extend_Check}${Extend_Check_Args} (${Extend_Basename}) [${Extend_Name}]" 10
 
     ${Extend_Check}${Extend_Check_Args} &> /dev/null
     Extend_RC=$?

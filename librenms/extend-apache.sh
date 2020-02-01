@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Output apache server-status values for LibreNMS.
+# Output apache server-status values for LibreNMS
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# bash
+# extend-include.sh
 # curl or wget
 
 #

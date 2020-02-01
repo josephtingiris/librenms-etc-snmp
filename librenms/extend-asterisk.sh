@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Output asterisk values for LibreNMS.
+# Output asterisk values for LibreNMS
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# bash
+# extend-include.sh
 
 #
 # 20200103, joseph.tingiris@gmail.com, created
@@ -51,9 +51,6 @@ fi
 if [ -r "${Extend_Include_Env}" ]; then
     source "${Extend_Include_Env}"
 fi
-
-debugecho "Basename=${Basename}" 1
-debugecho "Dirname=${Dirname}" 2
 
 Asterisk=$(type -P asterisk 2> /dev/null)
 

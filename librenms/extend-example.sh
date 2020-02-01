@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# An example (and a template) for librenms-etc-snmp.
+# An example of an extend script using extend-include.sh
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 # Dependencies:
-# bash
+# extend-include.sh
 
 #
 # 20200103, joseph.tingiris@gmail.com, created
@@ -57,8 +57,7 @@ if [ -r "${Extend_Include_Env}" ]; then
     source "${Extend_Include_Env}"
 fi
 
-debugecho "Basename=${Basename}" 1
-debugecho "Dirname=${Dirname}" 2
+debugecho "a debug message at level 2" 2
 
 cleanup "${Tmp_File}"
 
