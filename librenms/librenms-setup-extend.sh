@@ -2,9 +2,6 @@
 
 # This script runs /etc/snmp/librenms scripts and adds extend entries to snmpd.conf.
 
-# Dependencies:
-# realpath
-
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
 # This program is free software: you can redistribute it and/or modify
@@ -19,6 +16,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+# Dependencies:
+# realpath
 
 #
 # 20200103, joseph.tingiris@gmail.com, created

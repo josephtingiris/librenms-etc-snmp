@@ -2,11 +2,6 @@
 
 # Output php-fpm status values for LibreNMS.
 
-# Dependencies:
-# bash
-# curl or wget
-# pm.status_path = /status # in php-fpm.d/www.conf
-
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -19,6 +14,11 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+# Dependencies:
+# bash
+# curl or wget
+# pm.status_path = /status # in php-fpm.d/www.conf
 
 #
 # 20200102, joseph.tingiris@gmail.com, modified original LibreNMS phpfpmsp script
