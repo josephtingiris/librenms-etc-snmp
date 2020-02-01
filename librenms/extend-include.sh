@@ -52,6 +52,7 @@ function aborting() {
     >&2 echo
     >&2 echo "aborting ... $@"
     >&2 echo
+    cleanup "${Tmp_File}"
     exit 2
 }
 
@@ -62,6 +63,8 @@ function aborting() {
 function cleanup() {
     local files=($@)
 
+    local rc=0
+
     local files
     for file in "${files[@]}"; do
         if [ -f "${file}" ]; then
@@ -69,9 +72,12 @@ function cleanup() {
             rm -f "${file}" &> /dev/null
             if [ $? -ne 0 ]; then
                 error "'${file}' failed to rm"
+                rc=1
             fi
         fi
     done
+
+    return $rc
 }
 
 #
@@ -109,6 +115,7 @@ function error() {
     >&2 echo
     >&2 echo "error ... $@"
     >&2 echo
+    return 1
 }
 
 #
