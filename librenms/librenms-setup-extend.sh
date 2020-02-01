@@ -3,7 +3,6 @@
 # This script runs /etc/snmp/librenms scripts and adds extend entries to snmpd.conf.
 
 # Dependencies:
-# curl
 # realpath
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
@@ -67,20 +66,25 @@ fi
 debugecho "Basename = ${Basename}" 10
 debugecho "Dirname = ${Dirname}" 10
 
-Snmpd_Conf=/etc/snmp/snmpd.conf
-if [ ! -w "${Snmpd_Conf}" ]; then
-    aborting "${Snmpd_Conf} file not writable"
-fi
-
 if [ "$1" == "install" ]; then
     Install=0 # true
 else
-    if [ "$1" == "check" ] || [ "$1" == "" ]; then
+    if [ "$1" == "check" ]; then
         Install=1 # false
     else
         usage
     fi
 fi
+
+if [ ${#Snmpd_Conf} -eq 0 ]; then
+    Snmpd_Conf=/etc/snmp/snmpd.conf
+fi
+
+if [ ! -w "${Snmpd_Conf}" ]; then
+    aborting "${Snmpd_Conf} file not writable"
+fi
+
+debugecho "Snmpd_Conf = ${Snmpd_Conf}"
 
 if [ -x "${Dirname}"/extend-info.sh ]; then
     for Extend_Name in distro hardware manufacturer serial; do
