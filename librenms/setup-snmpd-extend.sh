@@ -78,6 +78,13 @@ fi
 
 debugecho "Snmpd_Conf = ${Snmpd_Conf}" 5
 
+Snmpd_Conf_Directory=${Snmpd_Conf%/*}
+debugecho "Snmpd_Conf = ${Snmpd_Conf}" 5
+
+if [ ! -d "${Snmpd_Conf_Directory}" ]; then
+    aborting "${Snmpd_Conf_Directory} not found"
+fi
+
 if [ -x "${Dirname}"/extend-info.sh ]; then
     for Extend_Name in distro hardware manufacturer serial; do
         "${Dirname}"/extend-info.sh "${Extend_Name}" &> /dev/null
@@ -103,7 +110,7 @@ if [ -x "${Dirname}"/extend-info.sh ]; then
                 if [ ${Install} -eq 0 ]; then
                     sed -Ei "/extend(.*)${Extend_OID}[[:space:]]/d" "${Snmpd_Conf}"
                     if [ $? -eq 0 ]; then
-                        echo "extend ${Extend_OID} ${Extend_Name} '${Dirname}/extend-info.sh ${Extend_Name}'" >> "${Snmpd_Conf}"
+                        echo "extend ${Extend_OID} ${Extend_Name} '${Snmp_Conf_Directory}/extend-info.sh ${Extend_Name}'" >> "${Snmpd_Conf}"
                         if [ $? -eq 0 ]; then
                             echo "+ extend ${Extend_OID} ${Extend_Name} installed."
                         else
