@@ -5,4 +5,5 @@
 !snmpd.conf.example*
 /*/
 !/librenms/
+!/setup-snmpd.d/
 !/templates/
