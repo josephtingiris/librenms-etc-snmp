@@ -68,7 +68,7 @@ function restartService() {
                 restart_ok=0
                 break
             else
-                uset -v restart_exec
+                unset -v restart_exec
             fi
         done
 
@@ -302,7 +302,7 @@ if [ ${Distro_EL} -eq 0 ]; then
     debugecho "validate required packages for Enterprise Linux" 18
 
     # these may be set in .env
-    [ ${#Required_Packages} -eq 0 ] && Required_Packages=(net-snmp net-snmp-utils)
+    [ ${#Required_Packages} -eq 0 ] && Required_Packages=(net-snmp)
 
     if [ ${#Required_Package} -gt 0 ]; then
         Required_Packages+=(${Required_Package})
