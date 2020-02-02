@@ -1,8 +1,8 @@
 /*
+!*example*
 !.gitignore
 !README.md
 !LICENSE*
-!snmpd.conf.example*
 !setup-snmpd
 /*/
 !/librenms/
