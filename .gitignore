@@ -1,7 +1,7 @@
 /*
 !.gitignore
 !README.md
-!LICENSE.txt
+!LICENSE*
 !snmpd.conf.example*
 !setup-snmpd
 /*/
