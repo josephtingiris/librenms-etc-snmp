@@ -19,10 +19,14 @@
 
 # Dependencies:
 # extend-include.sh
+# chown
+# chmod
 # date
 # diff
 # hostname
+# id
 # pidof
+# touch
 
 #
 # 20200131, joseph.tingiris@gmail.com, created
@@ -42,7 +46,7 @@ fi
 
 function _echo() {
     let Steps=${Steps}+1
-    printf "[$(date)] ${Basename} ${Hostname} %2s %-67.67s %s\n" "${Steps}" "$1" "[$2]"
+    printf "[$(date)] ${Basename} ${Hostname} %2s %-71.71s %s\n" "${Steps}" "$1" "[$2]"
 
     if [ "${2}" == "WARNING" ]; then
         let Warnings=${Warnings}+1
@@ -93,22 +97,49 @@ function restartService() {
 }
 
 function executables() {
-    local executable executables
+    local dirname="$1"
 
-    executables=("$0")
-    executables+=("${Dirname}/librenms/distro")
-    executables+=($(find "${Dirname}/" -name "*.bash" -type f 2> /dev/null))
-    executables+=($(find "${Dirname}/" -name "*.php" -type f 2> /dev/null))
-    executables+=($(find "${Dirname}/" -name "*.pl" -type f 2> /dev/null))
-    executables+=($(find "${Dirname}/" -name "*.py" -type f 2> /dev/null))
-    executables+=($(find "${Dirname}/" -name "*.sh" -type f 2> /dev/null))
+    if [ ${#dirname} -eq 0 ]; then
+        dirname="${Dirname}"
+    fi
 
+    if [ ! -d "${dirname}" ]; then
+        _echo "'${dirname}' is not a directory" WARNING
+        return 1
+    fi
+
+    local executable executables executables_ok
+
+    executables=("${dirname}/${Basename}")
+    executables+=("${dirname}/librenms/distro")
+    executables+=($(find "${dirname}/" -name "*.bash" -type f 2> /dev/null))
+    executables+=($(find "${dirname}/" -name "*.php" -type f 2> /dev/null))
+    executables+=($(find "${dirname}/" -name "*.pl" -type f 2> /dev/null))
+    executables+=($(find "${dirname}/" -name "*.py" -type f 2> /dev/null))
+    executables+=($(find "${dirname}/" -name "*.sh" -type f 2> /dev/null))
+
+    executables_ok=0
     for executable in "${executables[@]}"; do
-        debugecho "executable=${executable}" 22
         if [ ! -x "${executable}" ]; then
-            chmod 0750 "${executable}" &> /dev/null
+            executables_ok=1
+            if [ ${Install} -eq 0 ]; then
+                chmod 0750 "${executable}" &> /dev/null
+                if [ $? -eq 0 ]; then
+                    _echo "chmod 0750 '${executable}'" OK
+                else
+                    _echo "chmod 0750 '${executable}' failed" WARNING
+                fi
+            else
+                _echo "'${executable}' is not executable" WARNING
+            fi
+        else
+            debugecho "executable=${executable}" 22
         fi
     done
+
+    if [ ${executables_ok} -eq 0 ]; then
+        _echo "validated executables in '${dirname}'" OK
+    fi
 }
 
 function snmpdConfOK() {
@@ -191,10 +222,10 @@ if [ -r "${Extend_Include_Env}" ]; then
 fi
 
 #
-# Set execute bits on dependencies
+# Validate executables (in setup-snmpd directory); for install chmod if needed
 #
 
-executables
+executables "${Dirname}"
 
 #
 # Validate distribution
@@ -370,6 +401,8 @@ else
         if [ $? -eq 0 ]; then
             Backup_OK=0
         fi
+    else
+        Backup_OK=0
     fi
 fi
 
@@ -386,17 +419,17 @@ fi
 Backup_File=${Backup_Dir}/snmpd.conf.$(date +%s).bak
 if [ ${Install} -eq 0 ]; then
     if cp "${Snmpd_Conf}" "${Backup_File}" &> /dev/null; then
-        _echo "backup file '${Backup_File}'" OK
+        _echo "backup '${Backup_File}'" OK
         Backup_OK=0
     else
-        _echo "backup file '${Backup_File}' was not created" WARNING
+        _echo "backup '${Backup_File}' failed" WARNING
         Backup_OK=1
     fi
 else
     if [ ${Backup_OK} -eq 0 ]; then
-        _echo "backup file '${Backup_File}' should work" OK
+        _echo "backup '${Backup_File}' should work" INFO
     else
-        _echo "backup file '${Backup_File}' may not work" WARNING
+        _echo "backup '${Backup_File}' may not work" WARNING
     fi
 fi
 
@@ -650,6 +683,39 @@ if [ -s "${Tmp_File}" ]; then
 fi
 
 #
+# Validate and set owner & group of tmp file
+#
+
+[ ${#Snmpd_Group} -eq 0 ] && Snmpd_Group="root"
+[ ${#Snmpd_User} -eq 0 ] && Snmpd_User="root"
+
+if ! id -gn "${Snmpd_Group}" &> /dev/null; then
+    _echo "group '${Snmpd_Group}' is invalid, using 'root'" WARNING
+    Snmpd_Group="root"
+fi
+
+if ! id -un "${Snmpd_User}" &> /dev/null; then
+    _echo "group '${Snmpd_User}' is invalid, using 'root'" WARNING
+    Snmpd_User="root"
+fi
+
+chown ${Snmpd_User}:${Snmpd_User} "${Tmp_File}"
+if [ $? -eq 0 ]; then
+    _echo "chown ${Snmpd_User}:${Snmpd_Group} '${Tmp_File}'" OK
+else
+    Snmpd_Restart=1
+    _echo "chown ${Snmpd_User}:${Snmpd_Group} '${Tmp_File}' failed" WARNING
+fi
+
+chmod 0640 "${Tmp_File}"
+if [ $? -eq 0 ]; then
+    _echo "chmod 0640 '${Tmp_File}'" OK
+else
+    _echo "chmod 0640 '${Tmp_File}' failed" OK
+    Snmpd_Restart=1
+fi
+
+#
 # Validate tmp file (final)
 #
 
@@ -689,43 +755,67 @@ if [ ${Snmpd_Conf_OK} -eq 0 ]; then
     _echo "${Snmpd_Conf} does not need to be updated" OK
     if ! cleanup "${Tmp_File} ${Backup_File}"; then
         _echo "cleanup temporary files failed" WARNING
-        exit 1
-    fi
-
-    if [ ${Warnings} -eq 0 ]; then
-        exit 0
     fi
 else
     _echo "${Snmpd_Conf} needs to be updated" NOTICE
+    Snmpd_Restart=0
 fi
 
 #
-# Update snmpd.conf directory ownership (as long as it's in /etc)
+# Update snmpd.conf directory & files ownership (as long as it's in /etc)
 #
 
-if [ ${Install} -eq 0 ]; then
-    [ ${#Snmpd_Group} -eq 0 ] && Snmpd_Group="root"
-    [ ${#Snmpd_Owner} -eq 0 ] && Snmpd_Owner="root"
+if [ ${#Snmpd_Conf_Directory} -gt 0 ] && [ -d "${Snmpd_Conf_Directory}" ]; then
+    if [ "${Snmpd_Conf_Directory}" != "/" ] && [[ "${Snmpd_Conf_Directory}" == *"/etc"* ]]; then
+        Snmpd_Conf_Ownership_OK=0
 
-    if [ ${#Snmpd_Conf_Directory} -gt 0 ] && [ -d "${Snmpd_Conf_Directory}" ]; then
-        if [ "${Snmpd_Conf_Directory}" != "/" ] && [[ "${Snmpd_Conf_Directory}" == *"/etc"* ]]; then
-            chown -R ${Snmpd_Owner}:${Snmpd_Group} "${Snmpd_Conf_Directory}" &> /dev/null
-            if [ $? -eq 0 ]; then
-                _echo "chown -R ${Snmpd_Owner}:${Snmpd_Group} '${Snmpd_Conf_Directory}'" OK
-            else
-                _echo "chown -R ${Snmpd_Owner}:${Snmpd_Group} '${Snmpd_Conf_Directory}' failed" WARNING
-            fi
-
-            find "${Snmpd_Conf_Directory}/" -type f 2> /dev/null | xargs chmod 0640 &> /dev/null
-            find "${Snmpd_Conf_Directory}/" -type d 2> /dev/null | xargs chmod 0750 &> /dev/null
-
-            executables
+        find "${Snmpd_Conf_Directory}/" -printf "%u\n" 2> /dev/null | grep -qv "^${Snmpd_User}" &> /dev/null
+        Find_Snmpd_Owner_RC=$?
+        if [ ${Find_Snmpd_Owner_RC} -eq 1 ]; then
+            _echo "owner in '${Snmpd_Conf_Directory}' is all '${Snmpd_User}'" OK
+        else
+            _echo "owner in '${Snmpd_Conf_Directory}' is not all '${Snmpd_User}'" WARNING
+            Snmpd_Conf_Ownership_OK=1
         fi
+
+        find "${Snmpd_Conf_Directory}/" -printf "%g\n" 2> /dev/null | grep -qv "^${Snmpd_Group}" &> /dev/null
+        Find_Snmpd_Group_RC=$?
+        if [ ${Find_Snmpd_Group_RC} -eq 1 ]; then
+            _echo "group in '${Snmpd_Conf_Directory}' is all '${Snmpd_Group}'" OK
+        else
+            _echo "group in '${Snmpd_Conf_Directory}' is not all '${Snmpd_Group}'" WARNING
+            Snmpd_Conf_Ownership_OK=1
+        fi
+
+        if [ ${Install} -eq 0 ]; then
+            if [ ${Snmpd_Conf_Ownership_OK} -eq 1 ]; then
+                chown -R ${Snmpd_User}:${Snmpd_Group} "${Snmpd_Conf_Directory}" &> /dev/null
+                if [ $? -eq 0 ]; then
+                    _echo "chown -R ${Snmpd_User}:${Snmpd_Group} '${Snmpd_Conf_Directory}'" OK
+                else
+                    _echo "chown -R ${Snmpd_User}:${Snmpd_Group} '${Snmpd_Conf_Directory}' failed" WARNING
+                fi
+
+                find "${Snmpd_Conf_Directory}/" -type f 2> /dev/null | xargs chmod 0640 &> /dev/null
+                find "${Snmpd_Conf_Directory}/" -type d 2> /dev/null | xargs chmod 0750 &> /dev/null
+            fi
+        fi
+    else
+        _echo "invalid '${Snmpd_Conf_Directory}' directory not in /etc" ERROR
+        aborting "invalid '${Snmpd_Conf_Directory}' directory not in /etc" ERROR
     fi
 else
-    _echo "chown -R ${Snmpd_Owner}:${Snmpd_Group} '${Snmpd_Conf_Directory}' should work" OK
+    _echo "invalid '${Snmpd_Conf_Directory}' directory not found" ERROR
+    aborting "invalid '${Snmpd_Conf_Directory}' directory not found" ERROR
 fi
 
+#
+# Validate executables (in snmpd.conf directory); for install chmod if needed
+#
+
+executables "${Snmpd_Conf_Directory}"
+
+#
 #
 # Install snmpd.conf and restart snmpd
 #
@@ -734,16 +824,16 @@ if [ ${Install} -eq 0 ]; then
     Snmpd_Backout=1 # false
 
     if [ ${Snmpd_Conf_OK} -ne 0 ]; then
-        cp "${Tmp_File}" "${Snmpd_Conf}" &> /dev/null
+        cp -p "${Tmp_File}" "${Snmpd_Conf}" &> /dev/null
         if [ $? -eq 0 ]; then
             _echo "updated '${Snmpd_Conf}'" OK
-            Snmpd_Restart=0
         else
             _echo "updating '${Snmpd_Conf}' failed" WARNING
+            Snmpd_Restart=1
         fi
     fi
 
-    if [ ${Snmpd_Restart} -eq 0 ] || [ ${Warnings} -gt 0 ]; then
+    if [ ${Snmpd_Restart} -eq 0 ]; then
         restartService snmpd
         if pidof snmpd &> /dev/null; then
             _echo "snmpd restart" OK
@@ -776,3 +866,11 @@ fi
 if ! cleanup "${Tmp_File}"; then
     aborting "cleanup '${Tmp_File}' failed"
 fi
+
+if [ ${Install} -eq 0 ]; then
+    # all warnings were corrected and nothing triggered an abort
+    # if install made it this far then it succeeded
+    exit 0
+fi
+
+exit ${Warnings}
