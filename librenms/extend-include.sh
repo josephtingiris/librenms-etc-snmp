@@ -145,7 +145,9 @@ fi
 
 Extend_Include_Env="${Dirname}/${Basename%.*}.env"
 
-Tmp_File="/tmp/${Basename}.$(date +%s).tmp"
+[ ${#Tmp_Dir} -eq 0 ] && Tmp_Dir="/var/tmp"
+[ ! -w "${Tmp_Dir}" ] && Tmp_Dir="/tmp"
+Tmp_File="${Tmp_Dir}/${Basename}.$(date +%s).tmp"
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
