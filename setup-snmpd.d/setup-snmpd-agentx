@@ -22,6 +22,7 @@
 # chown
 # chmod
 # grep
+# sed
 
 #
 # 20200201, joseph.tingiris@gmail.com, created
@@ -73,7 +74,7 @@ if [ -s "${Tmp_File}" ]; then
     else
         debugecho "agentXSocket is not setup" 5
         if [ ${Install} -eq 0 ]; then
-            echo "agentXSocket /var/agentx" >> "${Tmp_File}"
+            echo "agentXSocket /var/agentx/master" >> "${Tmp_File}"
             if [ $? -eq 0 ]; then
                 _echo "added agentXSocket" OK
             else
@@ -86,43 +87,55 @@ if [ -s "${Tmp_File}" ]; then
 
     AgentXSocket=$(grep -i ^agentXSocket "${Tmp_File}" | awk '{print $2}')
     if [ ${#AgentXSocket} -eq 0 ]; then
-        AgentXSocket="/var/agentx"
+        AgentXSocket="/var/agentx/master"
     fi
     debugecho "AgentXSocket=${AgentXSocket}" 10
 
     AgentXSocket_OK=0
-    if [[ "${AgentXSocket,,}" == *":"* ]]; then
-        debugecho "agentXSocket is not a directory (:)" 5
-        AgentXSocket_OK=1
-    fi
 
-    if [[ "${AgentXSocket,,}" == *"127.0.0.1"* ]]; then
-        debugecho "agentXSocket is not a directory (127.0.0.1)" 5
+    if [[ "${AgentXSocket,,}" == *"/"* ]]; then
+        if [ -d "${AgentXSocket}" ]; then
+            _echo "agentXSocket is a directory" WARNING
+            AgentXSocket_OK=1
+        else
+            AgentXSocket_Directory=${AgentXSocket%/*}
+            debugecho "AgentXSocket_Directory=${AgentXSocket_Directory}" 10
+        fi
+    else
+        _echo "agentXSocket is not a file" WARNING
         AgentXSocket_OK=1
     fi
 
     if [ ${AgentXSocket_OK} -eq 0 ]; then
-        if [ -d "${AgentXSocket}" ]; then
-            _echo "agentXSocket directory '${AgentXSocket}'" OK
-        else
-            if [ ${Install} -eq 0 ]; then
-                mkdir -p "${AgentXSocket}"
-                if [ $? -eq 0 ]; then
-                    _echo "created agentXSocket directory" OK
-                else
-                    _echo "creating agentXSocket directory failed" WARNING
-                    AgentXSocket_OK=1
-                fi
+        if [ ${Install} -eq 0 ]; then
+            mkdir -p "${AgentXSocket_Directory}"
+            if [ $? -eq 0 ]; then
+                _echo "created agentXSocket directory '${AgentXSocket_Directory}'" OK
             else
-                _echo "missing agentXSocket directory" WARNING
+                _echo "creating agentXSocket directory  '${AgentXSocket_Directory}' failed" WARNING
+                AgentXSocket_OK=1
             fi
+        else
+            _echo "missing agentXSocket directory" WARNING
         fi
     else
-        _echo "using network agentXSocket '$AgentXSocket'" NOTICE
+        sed -i '/^agentXSocket.*/d' "${Tmp_File}" &> /dev/null
+        if [ $? -eq 0 ]; then
+            _echo "removed invalid agentXSocket '$AgentXSocket'" WARNING
+        else
+            _echo "removing invalid agentXSocket '$AgentXSocket' failed" ERROR
+            aborting "removing invalid agentXSocket '$AgentXSocket' failed"
+        fi
     fi
 
     # agentXPerms [socket file permissions] [directory permissions] [owner] [group]
     if [ ${AgentXSocket_OK} -eq 0 ]; then
+        AgentXSocket_Socket_Mode=$(grep -i ^agentXPerms "${Tmp_File}" | awk '{print $2}')
+        if [ ${#AgentXSocket_Socket_Mode} -eq 0 ]; then
+            AgentXSocket_Socket_Mode="0666"
+        fi
+        debugecho "AgentXSocket_Socket_Mode=${AgentXSocket_Socket_Mode}" 15
+
         AgentXSocket_Directory_Mode=$(grep -i ^agentXPerms "${Tmp_File}" | awk '{print $3}')
         if [ ${#AgentXSocket_Directory_Mode} -eq 0 ]; then
             AgentXSocket_Directory_Mode="0555"
@@ -153,14 +166,36 @@ if [ -s "${Tmp_File}" ]; then
         fi
 
         if [ ${Install} -eq 0 ]; then
-            chmod ${AgentXSocket_Directory_Mode} "${AgentXSocket}" 2> /dev/null
+            chmod ${AgentXSocket_Socket_Mode} "${AgentXSocket}" 2> /dev/null
             if [ $? -eq 0 ]; then
-                _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket}'" OK
+                _echo "chmod ${AgentXSocket_Socket_Mode} '${AgentXSocket}'" OK
             else
-                _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket}' failed" WARNING
+                _echo "chmod ${AgentXSocket_Socket_Mode} '${AgentXSocket}' failed" WARNING
             fi
         else
-            _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket}' should work" OK
+            _echo "chmod ${AgentXSocket_Socket_Mode} '${AgentXSocket}' should work" OK
+        fi
+
+        if [ ${Install} -eq 0 ]; then
+            chown ${AgentXSocket_Owner}:${AgentXSocket_Group} "${AgentXSocket_Directory}" 2> /dev/null
+            if [ $? -eq 0 ]; then
+                _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket_Directory}'" OK
+            else
+                _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket_Directory}' failed" WARNING
+            fi
+        else
+            _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket_Directory}' should work" OK
+        fi
+
+        if [ ${Install} -eq 0 ]; then
+            chmod ${AgentXSocket_Directory_Mode} "${AgentXSocket_Directory}" 2> /dev/null
+            if [ $? -eq 0 ]; then
+                _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket_Directory}'" OK
+            else
+                _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket_Directory}' failed" WARNING
+            fi
+        else
+            _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket_Directory}' should work" OK
         fi
 
     fi
