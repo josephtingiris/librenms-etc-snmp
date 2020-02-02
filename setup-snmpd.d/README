@@ -1,0 +1,1 @@
+If you want these to be run by setup-snmpd then they MUST start with what's in setup-snmpd-stub.
