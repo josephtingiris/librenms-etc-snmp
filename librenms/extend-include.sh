@@ -19,6 +19,7 @@
 
 # Dependencies:
 # bash v4+
+# date
 
 #
 # 20200103, joseph.tingiris@gmail.com, created
@@ -144,7 +145,7 @@ fi
 
 Extend_Include_Env="${Dirname}/${Basename%.*}.env"
 
-Tmp_File="/tmp/${Basename}.tmp"
+Tmp_File="/tmp/${Basename}.$(date +%s).tmp"
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
