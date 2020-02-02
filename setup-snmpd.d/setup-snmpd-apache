@@ -117,5 +117,5 @@ if pidof httpd &> /dev/null; then
         fi
     fi
 else
-    debugecho "httpd is not running" 5
+    _echo "httpd is not running" OK
 fi

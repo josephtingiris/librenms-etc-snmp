@@ -27,3 +27,9 @@
 if [ "${0}" == "${BASH_SOURCE}" ]; then
     printf "\naborting ... this script was executed, it must be sourced\n\n"; exit 1
 fi
+
+if [ ${#Stub} -gt 0 ]; then
+    debugecho "stub is running" 5
+else
+    _echo "stub is not running" OK
+fi

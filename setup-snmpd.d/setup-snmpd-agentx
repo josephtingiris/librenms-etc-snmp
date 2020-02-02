@@ -32,6 +32,8 @@ if [ "${0}" == "${BASH_SOURCE}" ]; then
 fi
 
 if [ -s "${Tmp_File}" ]; then
+    debugecho "${Tmp_File} is not empty" 5
+
     if grep -qi ^master\ agentx ${Tmp_File} 2> /dev/null; then
         _echo "master agentx already setup" OK
     else
@@ -101,7 +103,7 @@ if [ -s "${Tmp_File}" ]; then
 
     if [ ${AgentXSocket_OK} -eq 0 ]; then
         if [ -d "${AgentXSocket}" ]; then
-            _echo "agentXSocket '${AgentXSocket}' directory" OK
+            _echo "agentXSocket directory '${AgentXSocket}'" OK
         else
             if [ ${Install} -eq 0 ]; then
                 mkdir -p "${AgentXSocket}"
@@ -147,7 +149,7 @@ if [ -s "${Tmp_File}" ]; then
                 _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket}' failed" WARNING
             fi
         else
-            _echo "did not chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket}'" WARNING
+            _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket}' should work" OK
         fi
 
         if [ ${Install} -eq 0 ]; then
@@ -158,8 +160,10 @@ if [ -s "${Tmp_File}" ]; then
                 _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket}' failed" WARNING
             fi
         else
-            _echo "did not chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket}'" WARNING
+            _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket}' should work" OK
         fi
 
     fi
+else
+    _echo "${Tmp_File} is empty" OK
 fi

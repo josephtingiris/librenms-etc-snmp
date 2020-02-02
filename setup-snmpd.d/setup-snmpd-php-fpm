@@ -118,8 +118,8 @@ if pidof php-fpm &> /dev/null; then
             done
         fi
     else
-        debugecho "httpd is not running" 5
+        _echo "httpd is not running" OK
     fi
 else
-    debugecho "php-fpm is not running" 5
+    _echo "php-fpm is not running" OK
 fi

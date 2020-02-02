@@ -47,11 +47,15 @@ if [ -f /etc/named.conf ]; then
             _echo "extend bind stats" OK
         else
             _echo "extend bind stats failed" WARNING
+        fi
+
+        if [ ${Distro_EL} -eq 0 ]; then
+            _echo "adding optional packages for Enterprise Linux" OK
             Optional_Packages+=(perl perl-File-ReadBackwards)
         fi
     else
-        debugecho "bind is not running" 5
+        _echo "bind is not running" OK
     fi
 else
-    debugecho "/etc/named.conf file not found" 5
+    _echo "/etc/named.conf file not found" OK
 fi
