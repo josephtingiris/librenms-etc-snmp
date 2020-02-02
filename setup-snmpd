@@ -92,6 +92,25 @@ function restartService() {
     return ${restart_rc}
 }
 
+function executables() {
+    local executable executables
+
+    executables=("$0")
+    executables+=("${Dirname}/librenms/distro")
+    executables+=($(find "${Dirname}/" -name "*.bash" -type f 2> /dev/null))
+    executables+=($(find "${Dirname}/" -name "*.php" -type f 2> /dev/null))
+    executables+=($(find "${Dirname}/" -name "*.pl" -type f 2> /dev/null))
+    executables+=($(find "${Dirname}/" -name "*.py" -type f 2> /dev/null))
+    executables+=($(find "${Dirname}/" -name "*.sh" -type f 2> /dev/null))
+
+    for executable in "${executables[@]}"; do
+        debugecho "executable=${executable}" 22
+        if [ ! -x "${executable}" ]; then
+            chmod 0750 "${executable}" &> /dev/null
+        fi
+    done
+}
+
 function snmpdConfOK() {
     local snmpd_conf="$1"
 
@@ -167,14 +186,18 @@ fi
 [ ${#Snmpd_Conf} -eq 0 ] && Snmpd_Conf=/etc/snmp/snmpd.conf
 
 #
+# Set execute bits on dependencies
+#
+
+executables
+
+#
 # Validate distribution
 #
 
 Distro_OK=1 # false
 
-if [ -x "${Dirname}/librenms/distro" ]; then
-    Distro=$("${Dirname}/librenms/distro")
-fi
+Distro=$(bash "${Dirname}/librenms/distro" 2> /dev/null)
 
 if [ ${#Distro} -eq 0 ]; then
     # maybe distro wasn't found executable
@@ -311,8 +334,19 @@ fi
 if [ -w "${Snmpd_Conf}" ]; then
     _echo "configuration file '${Snmpd_Conf}'" OK
 else
-    _echo "configuration file '${Snmpd_Conf}' is not writable" ERROR
-    aborting "configuration file '${Snmpd_Conf}' is not writable"
+    touch "${Snmpd_Conf}" &> /dev/null
+    if [ -w "${Snmpd_Conf}" ]; then
+        _echo "configuration file '${Snmpd_Conf}' touched" OK
+    else
+        _echo "configuration file '${Snmpd_Conf}' is not writable" ERROR
+        aborting "configuration file '${Snmpd_Conf}' is not writable"
+    fi
+fi
+
+[ ${#Snmpd_Conf_Directory} -eq 0 ] && Snmpd_Conf_Directory=${Snmpd_Conf%/*}
+
+if [ ! -d "${Snmpd_Conf_Directory}" ]; then
+    aborting "'${Snmpd_Conf_Directory}' is not a directory"
 fi
 
 #
@@ -661,6 +695,33 @@ else
 fi
 
 #
+# Update snmpd.conf directory ownership (as long as it's in /etc)
+#
+
+if [ ${Install} -eq 0 ]; then
+    [ ${#Snmpd_Group} -eq 0 ] && Snmpd_Group="root"
+    [ ${#Snmpd_Owner} -eq 0 ] && Snmpd_Owner="root"
+
+    if [ ${#Snmpd_Conf_Directory} -gt 0 ] && [ -d "${Snmpd_Conf_Directory}" ]; then
+        if [ "${Snmpd_Conf_Directory}" != "/" ] && [[ "${Snmpd_Conf_Directory}" == *"/etc"* ]]; then
+            chown -R ${Snmpd_Owner}:${Snmpd_Group} "${Snmpd_Conf_Directory}" &> /dev/null
+            if [ $? -eq 0 ]; then
+                _echo "chown -R ${Snmpd_Owner}:${Snmpd_Group} '${Snmpd_Conf_Directory}'" OK
+            else
+                _echo "chown -R ${Snmpd_Owner}:${Snmpd_Group} '${Snmpd_Conf_Directory}' failed" WARNING
+            fi
+
+            find "${Snmpd_Conf_Directory}/" -type f 2> /dev/null | xargs chmod 0640 &> /dev/null
+            find "${Snmpd_Conf_Directory}/" -type d 2> /dev/null | xargs chmod 0750 &> /dev/null
+
+            executables
+        fi
+    fi
+else
+    _echo "chown -R ${Snmpd_Owner}:${Snmpd_Group} '${Snmpd_Conf_Directory}' should work" OK
+fi
+
+#
 # Install snmpd.conf and restart snmpd
 #
 
@@ -702,6 +763,10 @@ else
         _echo "cleanup '${Backup_File}' failed" WARNING
     fi
 fi
+
+#
+# Cleanup (final)
+#
 
 if ! cleanup "${Tmp_File}"; then
     aborting "cleanup '${Tmp_File}' failed"
