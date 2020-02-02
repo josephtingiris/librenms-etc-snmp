@@ -78,11 +78,11 @@ fi
 
 debugecho "Snmpd_Conf = ${Snmpd_Conf}" 5
 
-Snmpd_Conf_Directory=${Snmpd_Conf%/*}
-debugecho "Snmpd_Conf = ${Snmpd_Conf}" 5
+[ ${#Snmpd_Conf_Dir} -eq 0 ] && Snmpd_Conf_Dir=${Snmpd_Conf%/*}
+debugecho "Snmpd_Conf_Dir = ${Snmpd_Conf_Dir}" 5
 
-if [ ! -d "${Snmpd_Conf_Directory}" ]; then
-    aborting "${Snmpd_Conf_Directory} not found"
+if [ ! -d "${Snmpd_Conf_Dir}" ]; then
+    aborting "${Snmpd_Conf_Dir} not found"
 fi
 
 if [ -x "${Dirname}"/extend-info.sh ]; then
@@ -110,7 +110,7 @@ if [ -x "${Dirname}"/extend-info.sh ]; then
                 if [ ${Install} -eq 0 ]; then
                     sed -Ei "/extend(.*)${Extend_OID}[[:space:]]/d" "${Snmpd_Conf}"
                     if [ $? -eq 0 ]; then
-                        echo "extend ${Extend_OID} ${Extend_Name} '${Snmp_Conf_Directory}/extend-info.sh ${Extend_Name}'" >> "${Snmpd_Conf}"
+                        echo "extend ${Extend_OID} ${Extend_Name} '${Snmpd_Conf_Dir}/extend-info.sh ${Extend_Name}'" >> "${Snmpd_Conf}"
                         if [ $? -eq 0 ]; then
                             echo "+ extend ${Extend_OID} ${Extend_Name} installed."
                         else
@@ -129,28 +129,29 @@ unset -v Extend_Name Extend_RC
 
 while read Extend_Check; do
     Extend_Basename=${Extend_Check##*/}
+    Extend_Exec="${Snmpd_Conf_Dir}/${Extend_Basename}"
     Extend_Name=${Extend_Basename}
     Extend_Name=${Extend_Name//.bash/}
     Extend_Name=${Extend_Name//.sh/}
     Extend_Name=${Extend_Name//.php/}
     Extend_Name=${Extend_Name//.pl/}
-    Extend_Conf="${Dirname}/${Extend_Name}.conf"
+    Extend_Conf="${Snmpd_Conf_Dir}/${Extend_Name}.conf"
     Extend_Name=${Extend_Name/extend-/}
     Extend_Name=${Extend_Name/custom-/}
 
     if [ -r "${Extend_Conf}" ]; then
-        Extend_Check_Args=" -c ${Extend_Conf}"
+        Extend_Exec_Args=" -c ${Extend_Conf}"
     fi
 
-    debugecho "Extend_Check = ${Extend_Check}${Extend_Check_Args} (${Extend_Basename}) [${Extend_Name}]" 10
+    debugecho "Extend_Check = ${Extend_Check}${Extend_Exec_Args} (${Extend_Basename}) [${Extend_Name}]" 10
 
-    ${Extend_Check}${Extend_Check_Args} &> /dev/null
+    ${Extend_Check}${Extend_Exec_Args} &> /dev/null
     Extend_RC=$?
     if [ ${Extend_RC} -eq 0 ]; then
         if [ ${Install} -eq 0 ]; then
             sed -Ei "/extend(.*)${Extend_Name}[[:space:]]/d" "${Snmpd_Conf}"
             if [ $? -eq 0 ]; then
-                echo "extend ${Extend_Name} '${Extend_Check}${Extend_Check_Args}'" >> "${Snmpd_Conf}"
+                echo "extend ${Extend_Name} '${Extend_Exec}${Extend_Exec_Args}'" >> "${Snmpd_Conf}"
                 if [ $? -eq 0 ]; then
                     echo "+ extend ${Extend_Name} installed."
                 else
@@ -161,6 +162,6 @@ while read Extend_Check; do
             echo "+ extend ${Extend_Name} returns success."
         fi
     fi
-    unset -v Extend_Check_Args Extend_Basename Extend_Name Extend_RC
+    unset -v Extend_Exec_Args Extend_Basename Extend_Name Extend_RC
 done <<< "$(find "${Dirname}" -name "extend-*" | egrep -ve 'extend-include|extend-info|conf$|example|cfg$' | xargs -r ls -1)"
 

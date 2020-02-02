@@ -369,10 +369,10 @@ else
     fi
 fi
 
-[ ${#Snmpd_Conf_Directory} -eq 0 ] && Snmpd_Conf_Directory=${Snmpd_Conf%/*}
+[ ${#Snmpd_Conf_Dir} -eq 0 ] && Snmpd_Conf_Dir=${Snmpd_Conf%/*}
 
-if [ ! -d "${Snmpd_Conf_Directory}" ]; then
-    aborting "'${Snmpd_Conf_Directory}' is not a directory"
+if [ ! -d "${Snmpd_Conf_Dir}" ]; then
+    aborting "'${Snmpd_Conf_Dir}' is not a directory"
 fi
 
 #
@@ -641,16 +641,16 @@ if [ ${#Optional_Packages} -gt 0 ]; then
 fi
 
 #
-# If librenms-setup-extend.sh is found then attempt to extend the tmp file
+# If setup-snmpd-extend.sh is found then attempt to extend the tmp file
 #
 
 if [ ${Tmp_File_OK} -eq 0 ]; then
     if [ ${#LibreNMS_Setup_Extend} -eq 0 ]; then
-        LibreNMS_Setup_Extend="${Dirname}/librenms/librenms-setup-extend.sh"
+        LibreNMS_Setup_Extend="${Dirname}/librenms/setup-snmpd-extend.sh"
     fi
 
     if [ -f "${LibreNMS_Setup_Extend}" ]; then
-        Snmpd_Conf=${Tmp_File} bash "${LibreNMS_Setup_Extend}" install &> /dev/null
+        Snmpd_Conf=${Tmp_File} Snmpd_Conf_Dir=${Snmpd_Conf_Dir} bash "${LibreNMS_Setup_Extend}" install &> /dev/null
         if [ $? -eq 0 ]; then
             _echo "extended ${Tmp_File} for librenms" OK
         else
@@ -755,55 +755,56 @@ fi
 # Update snmpd.conf directory & files ownership (as long as it's in /etc)
 #
 
-if [ ${#Snmpd_Conf_Directory} -gt 0 ] && [ -d "${Snmpd_Conf_Directory}" ]; then
-    if [ "${Snmpd_Conf_Directory}" != "/" ] && [[ "${Snmpd_Conf_Directory}" == *"/etc"* ]]; then
+if [ ${#Snmpd_Conf_Dir} -gt 0 ] && [ -d "${Snmpd_Conf_Dir}" ]; then
+    if [ "${Snmpd_Conf_Dir}" != "/" ] && [[ "${Snmpd_Conf_Dir}" == *"/etc"* ]]; then
         Snmpd_Conf_Ownership_OK=0
 
-        find "${Snmpd_Conf_Directory}/" -printf "%u\n" 2> /dev/null | grep -qv "^${Snmpd_User}" &> /dev/null
+        find "${Snmpd_Conf_Dir}/" -printf "%u\n" 2> /dev/null | grep -qv "^${Snmpd_User}" &> /dev/null
         Find_Snmpd_Owner_RC=$?
         if [ ${Find_Snmpd_Owner_RC} -eq 1 ]; then
-            _echo "owner in '${Snmpd_Conf_Directory}' is all '${Snmpd_User}'" OK
+            _echo "owner in '${Snmpd_Conf_Dir}' is all '${Snmpd_User}'" OK
         else
-            _echo "owner in '${Snmpd_Conf_Directory}' is not all '${Snmpd_User}'" WARNING
+            _echo "owner in '${Snmpd_Conf_Dir}' is not all '${Snmpd_User}'" WARNING
             Snmpd_Conf_Ownership_OK=1
         fi
 
-        find "${Snmpd_Conf_Directory}/" -printf "%g\n" 2> /dev/null | grep -qv "^${Snmpd_Group}" &> /dev/null
+        find "${Snmpd_Conf_Dir}/" -printf "%g\n" 2> /dev/null | grep -qv "^${Snmpd_Group}" &> /dev/null
         Find_Snmpd_Group_RC=$?
         if [ ${Find_Snmpd_Group_RC} -eq 1 ]; then
-            _echo "group in '${Snmpd_Conf_Directory}' is all '${Snmpd_Group}'" OK
+            _echo "group in '${Snmpd_Conf_Dir}' is all '${Snmpd_Group}'" OK
         else
-            _echo "group in '${Snmpd_Conf_Directory}' is not all '${Snmpd_Group}'" WARNING
+            _echo "group in '${Snmpd_Conf_Dir}' is not all '${Snmpd_Group}'" WARNING
             Snmpd_Conf_Ownership_OK=1
         fi
 
         if [ ${Install} -eq 0 ]; then
             if [ ${Snmpd_Conf_Ownership_OK} -eq 1 ]; then
-                chown -R ${Snmpd_User}:${Snmpd_Group} "${Snmpd_Conf_Directory}" &> /dev/null
+                chown -R ${Snmpd_User}:${Snmpd_Group} "${Snmpd_Conf_Dir}" &> /dev/null
                 if [ $? -eq 0 ]; then
-                    _echo "chown -R ${Snmpd_User}:${Snmpd_Group} '${Snmpd_Conf_Directory}'" OK
+                    _echo "chown -R ${Snmpd_User}:${Snmpd_Group} '${Snmpd_Conf_Dir}'" OK
                 else
-                    _echo "chown -R ${Snmpd_User}:${Snmpd_Group} '${Snmpd_Conf_Directory}' failed" WARNING
+                    _echo "chown -R ${Snmpd_User}:${Snmpd_Group} '${Snmpd_Conf_Dir}' failed" WARNING
                 fi
 
-                find "${Snmpd_Conf_Directory}/" -type f 2> /dev/null | xargs chmod 0640 &> /dev/null
-                find "${Snmpd_Conf_Directory}/" -type d 2> /dev/null | xargs chmod 0750 &> /dev/null
             fi
+
+            find "${Snmpd_Conf_Dir}/" -type f 2> /dev/null | xargs chmod 0640 &> /dev/null
+            find "${Snmpd_Conf_Dir}/" -type d 2> /dev/null | xargs chmod 0750 &> /dev/null
         fi
     else
-        _echo "invalid '${Snmpd_Conf_Directory}' directory not in /etc" ERROR
-        aborting "invalid '${Snmpd_Conf_Directory}' directory not in /etc" ERROR
+        _echo "invalid '${Snmpd_Conf_Dir}' directory not in /etc" ERROR
+        aborting "invalid '${Snmpd_Conf_Dir}' directory not in /etc" ERROR
     fi
 else
-    _echo "invalid '${Snmpd_Conf_Directory}' directory not found" ERROR
-    aborting "invalid '${Snmpd_Conf_Directory}' directory not found" ERROR
+    _echo "invalid '${Snmpd_Conf_Dir}' directory not found" ERROR
+    aborting "invalid '${Snmpd_Conf_Dir}' directory not found" ERROR
 fi
 
 #
 # Validate executables (in snmpd.conf directory); for install chmod if needed
 #
 
-executables "${Snmpd_Conf_Directory}"
+executables "${Snmpd_Conf_Dir}"
 
 #
 #
