@@ -86,6 +86,26 @@ if pidof php-fpm &> /dev/null; then
             fi
         fi
 
+        PHPFPM_WWW_Conf_OK=1
+
+        if [ ${Distro_EL} -eq 0 ] && [ ${PHPFPM_WWW_Conf_OK} -eq 1 ]; then
+            if [ -w /etc/php-fpm.d/www.conf ]; then
+                if grep -q ^\;pm.status_path /etc/php-fpm.d/www.conf &> /dev/null; then
+                    if [ ${Install} -eq 0 ]; then
+                        # uncomment pm.status_path
+                        sed -i '/;pm.status_path/s//pm.status_path/g' /etc/php-fpm.d/www.conf 2> /dev/null
+                        if [ $? -eq 0 ]; then
+                            _echo "php-fpm '/etc/php-fpm.d/www.conf' pm.status_path uncommented" OK
+                        else
+                            _echo "php-fpm '/etc/php-fpm.d/www.conf' pm.status_path failed to uncomment" WARNING
+                        fi
+                    else
+                        _echo "php-fpm '/etc/php-fpm.d/www.conf' pm.status_path is commented" WARNING
+                    fi
+                fi
+            fi
+        fi
+
         PHPFPM_Backout=1 # false
         PHPFPM_Services=(php-fpm httpd)
         if [ ${Distro_EL} -eq 0 ] && [ ${PHPFPM_Status_Conf_OK} -eq 0 ]; then
