@@ -59,7 +59,7 @@ function _echo() {
     fi
 
     let Steps=${Steps}+1
-    printf "[$(date)] ${Basename} ${Hostname} %2s %-71.71s %s\n" "${Steps}" "${1}" "${status_message}"
+    printf "[$(date)] ${Basename} ${Hostname} %2s %-71s %s\n" "${Steps}" "${1}" "${status_message}"
 
     if [ "${status_message}" == "[WARNING]" ]; then
         let Warnings=${Warnings}+1
