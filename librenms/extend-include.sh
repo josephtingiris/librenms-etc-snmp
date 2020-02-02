@@ -92,7 +92,7 @@ function debugecho() {
         return
     fi
 
-    local -i debug_level=${debug_message[@]: -1}
+    local debug_level=${debug_message[@]: -1}
 
     if [[ ! "${debug_level}" =~ [0-9]+$ ]]; then
         # debug_level is not in debug_message
