@@ -129,6 +129,7 @@ while read Extend_Check; do
     Extend_Name=${Extend_Name//.pl/}
     Extend_Conf="${Dirname}/${Extend_Name}.conf"
     Extend_Name=${Extend_Name/extend-/}
+    Extend_Name=${Extend_Name/custom-/}
 
     if [ -r "${Extend_Conf}" ]; then
         Extend_Check_Args=" -c ${Extend_Conf}"
