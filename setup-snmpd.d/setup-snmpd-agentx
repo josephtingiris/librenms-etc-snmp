@@ -116,7 +116,7 @@ if [ -s "${Tmp_File}" ]; then
                 AgentXSocket_OK=1
             fi
         else
-            _echo "agentXSocket directory should work" OK
+            _echo "agentXSocket directory should work" INFO
         fi
     else
         sed -i '/^agentXSocket.*/d' "${Tmp_File}" &> /dev/null
@@ -162,7 +162,7 @@ if [ -s "${Tmp_File}" ]; then
                 _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket}' failed" WARNING
             fi
         else
-            _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket}' should work" OK
+            _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket}' should work" INFO
         fi
 
         if [ ${Install} -eq 0 ]; then
@@ -173,7 +173,7 @@ if [ -s "${Tmp_File}" ]; then
                 _echo "chmod ${AgentXSocket_Socket_Mode} '${AgentXSocket}' failed" WARNING
             fi
         else
-            _echo "chmod ${AgentXSocket_Socket_Mode} '${AgentXSocket}' should work" OK
+            _echo "chmod ${AgentXSocket_Socket_Mode} '${AgentXSocket}' should work" INFO
         fi
 
         if [ ${Install} -eq 0 ]; then
@@ -184,7 +184,7 @@ if [ -s "${Tmp_File}" ]; then
                 _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket_Directory}' failed" WARNING
             fi
         else
-            _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket_Directory}' should work" OK
+            _echo "chown ${AgentXSocket_Owner}:${AgentXSocket_Group} '${AgentXSocket_Directory}' should work" INFO
         fi
 
         if [ ${Install} -eq 0 ]; then
@@ -195,7 +195,7 @@ if [ -s "${Tmp_File}" ]; then
                 _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket_Directory}' failed" WARNING
             fi
         else
-            _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket_Directory}' should work" OK
+            _echo "chmod ${AgentXSocket_Directory_Mode} '${AgentXSocket_Directory}' should work" INFO
         fi
 
     fi
