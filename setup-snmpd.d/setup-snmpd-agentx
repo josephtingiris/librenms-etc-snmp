@@ -116,7 +116,7 @@ if [ -s "${Tmp_File}" ]; then
                 AgentXSocket_OK=1
             fi
         else
-            _echo "missing agentXSocket directory" WARNING
+            _echo "agentXSocket directory should work" OK
         fi
     else
         sed -i '/^agentXSocket.*/d' "${Tmp_File}" &> /dev/null
