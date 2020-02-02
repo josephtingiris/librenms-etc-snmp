@@ -67,7 +67,7 @@ if [ -s "${Tmp_File}" ]; then
     fi
 
     if grep -qi ^agentXSocket\  ${Tmp_File} 2> /dev/null; then
-        _echo "agentXSocket already setup" 10
+        _echo "agentXSocket already setup" OK
     else
         debugecho "agentXSocket is not setup" 5
         if [ ${Install} -eq 0 ]; then

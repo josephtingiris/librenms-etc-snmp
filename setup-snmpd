@@ -1,0 +1,654 @@
+#!/usr/bin/env bash
+
+# This script runs /etc/snmp/librenms scripts and adds extend entries to snmpd.conf
+
+# Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+# Dependencies:
+# extend-include.sh
+# date
+# diff
+# hostname
+# pidof
+
+#
+# 20200131, joseph.tingiris@gmail.com, created
+#
+
+#
+# Init
+#
+
+if [ "${USER}" != "root" ]; then
+    printf "\naborting ... this script must be run as root.\n\n"; exit 1
+fi
+
+#
+# Functions
+#
+
+function _echo() {
+    printf "[$(date)] [$Hostname] %-70.70s %s\n" "$1" "[$2]"
+}
+
+function restartService() {
+    local service_name="$1"
+
+    local restart_cmd restart_cmds restart_exec
+    local restart_ok=1
+    local restart_rc=1
+
+    if [ ${#service_name} -eq 0 ]; then
+        return ${restart_rc}
+    fi
+
+    if [ ${Install} -eq 0 ]; then
+        restart_cmds=(systemctl service)
+        for restart_cmd in ${restart_cmds[@]}; do
+            restart_exec=$(type -p ${restart_cmd} 2> /dev/null)
+            if [ ${#restart_exec} -gt 0 ] && [ -x "${restart_exec}" ]; then
+                restart_ok=0
+                break
+            else
+                uset -v restart_exec
+            fi
+        done
+
+        if [ ${restart_ok} -eq 0 ] && [ ${#restart_exec} -gt 0 ]; then
+
+            if [ "${restart_cmd}" == "systemctl" ]; then
+                ${restart_exec} restart ${service_name}
+                restart_rc=$?
+            fi
+
+            if [ "${restart_cmd}" == "service" ]; then
+                ${restart_exec} ${service_name} restart
+                restart_rc=$?
+            fi
+
+            debugecho "restart_cmd=${restart_cmd}, restart_exec=${restart_exec}, service_name=${service_name}, rc=${restart_rc}" 10
+            return ${restart_rc}
+        fi
+    fi
+
+    return ${restart_rc}
+}
+
+function snmpdConfOK() {
+    local snmpd_conf="$1"
+
+    if [ ${#snmpd_conf} -eq 0 ]; then
+        return 1
+    fi
+
+    if [ -s "${snmpd_conf}" ]; then
+        # test rocommunity, rwcommunity, rouser, or rwuser exists
+        if grep -qE '^rocommunity|^rouser|^rwcommunity|^rwuser' "${snmpd_conf}" 2> /dev/null; then
+            debugecho "${snmpd_conf} is OK" 14
+            return 0
+        else
+            debugecho "${snmpd_conf} is NOT OK" 4
+            return 1
+        fi
+    fi
+
+    debugecho "${snmpd_conf} is NOT OK" 44
+    return 1
+}
+
+function usage() {
+    printf "\nusage: $0 [check|install]\n\n"; exit 1
+}
+
+# for more, see extend.include.sh
+
+#
+# Globals
+#
+
+Basename=${0##*/}
+Dirname=${0%/*}
+
+#
+# Main
+#
+
+# source extend-include.sh or exit
+if [ -r "${Dirname}/librenms/extend-include.sh" ]; then
+    source "${Dirname}/librenms/extend-include.sh"
+else
+    "aborting .. can't source extend-include.sh"
+    exit 1
+fi
+
+# if it exists and is readable then source $0.env
+if [ -r "${Extend_Include_Env}" ]; then
+    source "${Extend_Include_Env}"
+fi
+
+Install=1
+if [ "$1" == "install" ]; then
+    Install=0 # true
+else
+    if [ "$1" != "check" ]; then
+        usage
+    fi
+fi
+
+#
+# Init Environment Defaults
+#
+
+# these may be set in $0.env, so check them before setting any defaults
+[ ${#Backup_Dir} -eq 0 ] && Backup_Dir=/var/tmp/${Basename}
+[ ${#Distro} -eq 0 ] && Distro="Unknown"
+[ ${#Hostname} -eq 0 ] && Hostname=$(hostname -s)
+[ ${#Snmpd_Conf} -eq 0 ] && Snmpd_Conf=/etc/snmp/snmpd.conf
+
+#
+# Validate distribution
+#
+
+Distro_OK=1 # false
+
+if [ -x "${Dirname}/librenms/distro" ]; then
+    Distro=$("${Dirname}/librenms/distro")
+fi
+
+if [ ${#Distro} -eq 0 ]; then
+    # maybe distro wasn't found executable
+    if [ -r /etc/redhat-release ]; then
+        Distro="Enterprise Linux"
+    fi
+fi
+
+Distro_Arch=1 # false
+
+Distro_Debian=1 # false
+
+Distro_EL=1 # false; Enterprise Linux
+
+if [ ${Distro_OK} -eq 1 ] && [ ${Distro_EL} -eq 1 ] && [[ "${Distro,,}" =~ centos* ]]; then
+    Distro_EL=0
+fi
+if [ ${Distro_OK} -eq 1 ] && [ ${Distro_EL} -eq 1 ] && [[ "${Distro,,}" =~ enterprise.linux* ]]; then
+    Distro_EL=0
+fi
+if [ ${Distro_OK} -eq 1 ] && [ ${Distro_EL} -eq 1 ] && [[ "${Distro,,}" =~ red.hat* ]]; then
+    Distro_EL=0
+fi
+if [ ${Distro_OK} -eq 1 ] && [ ${Distro_EL} -eq 1 ] && [[ "${Distro,,}" =~ redhat* ]]; then
+    Distro_EL=0
+fi
+
+if [ ${Distro_EL} -eq 0 ]; then
+    Distro_OK=0 # true
+fi
+
+if [ ${Distro_OK} -eq 0 ]; then
+    _echo "distribution is ${Distro}" OK
+else
+    _echo "distribution is ${Distro}" ERROR
+    aborting "this script was not tested on this distribution"
+fi
+
+#
+# Validate package installer
+#
+
+if [ ${Distro_Arch} -eq 0 ]; then
+    debugecho "validate package installer for Arch Linux" 18
+fi
+
+if [ ${Distro_Debian} -eq 0 ]; then
+    debugecho "validate package installer for Debian Linux" 18
+fi
+
+if [ ${Distro_EL} -eq 0 ]; then
+    debugecho "validate package installer for Enterprise Linux" 18
+
+    if [ ${#Package_Installer} -eq 0 ]; then
+        # Package_Installer is not set in .env
+
+        [ ${#Package_Installers} -eq 0 ] && Package_Installers=(dnf or yum)
+
+        for Package_Installer in ${Package_Installers[@]}; do
+            Package_Installer=$(type -p ${Package_Installer} 2> /dev/null)
+            if [ ${#Package_Installer} -gt 0 ] && [ -x "${Package_Installer}" ]; then
+                break
+            else
+                unset -v Package_Installer
+            fi
+        done
+    fi
+
+    # these may be set in .env
+    [ ${#Package_Installer_Args_Info} -eq 0 ] && Package_Installer_Args_Info="info"
+    [ ${#Package_Installer_Args_Install} -eq 0 ] && Package_Installer_Args_Install="-y install"
+    [ ${#Package_Installer_Package_Installer_Args_Installed} -eq 0 ] && Package_Installer_Package_Installer_Args_Installed="list installed"
+fi
+
+Package_Installer=$(type -p ${Package_Installer} 2> /dev/null)
+
+if [ ${#Package_Installer} -gt 0 ] && [ -x "${Package_Installer}" ]; then
+    _echo "package installer is ${Package_Installer}" OK
+else
+    _echo "package installer is unknown" ERROR
+    aborting "${Package_Installers[@]} package installer file not found executable"
+fi
+
+#
+# Validate required packages are installed
+#
+
+if [ ${Distro_Arch} -eq 0 ]; then
+    debugecho "validate required packages for Arch Linux" 18
+fi
+
+if [ ${Distro_Debian} -eq 0 ]; then
+    debugecho "validate required packages for Debian Linux" 18
+fi
+
+if [ ${Distro_EL} -eq 0 ]; then
+    debugecho "validate required packages for Enterprise Linux" 18
+
+    # these may be set in .env
+    [ ${#Required_Packages} -eq 0 ] && Required_Packages=(net-snmp net-snmp-utils)
+
+    if [ ${#Required_Package} -gt 0 ]; then
+        Required_Packages+=(${Required_Package})
+    fi
+fi
+
+if [ ${#Required_Packages} -gt 0 ]; then
+    for Required_Package in ${Required_Packages[@]}; do
+        [ "${Required_Package,,}" == "none" ] && continue
+        ${Package_Installer} ${Package_Installer_Package_Installer_Args_Installed} ${Required_Package} &> /dev/null
+        if [ $? -eq 0 ]; then
+            _echo "required package ${Required_Package} is installed" OK
+        else
+            if [ ${Install} -eq 0 ]; then
+                ${Package_Installer} ${Package_Installer_Args_Install} ${Required_Package} &> /dev/null
+                if [ $? -eq 0 ]; then
+                    _echo "required package ${Required_Package} was installed" OK
+                else
+                    _echo "required package ${Required_Package} failed to install" ERROR
+                    aborting "required package ${Required_Package} failed to install"
+                fi
+            else
+                _echo "required package ${Required_Package} needs to be installed" WARNING
+            fi
+        fi
+    done
+    unset -v Required_Package
+fi
+
+#
+# Validate snmpd.conf
+#
+
+if [ -w "${Snmpd_Conf}" ]; then
+    _echo "configuration file '${Snmpd_Conf}'" OK
+else
+    _echo "configuration file '${Snmpd_Conf}' is not writable" ERROR
+    aborting "configuration file '${Snmpd_Conf}' is not writable"
+fi
+
+#
+# Validate backup directory exists and is writable
+#
+
+Backup_OK=1 # false
+
+if [ -d "${Backup_Dir}" ]; then
+    if [ -w "${Backup_Dir}" ]; then
+        Backup_OK=0
+    fi
+else
+    if [ ${Install} -eq 0 ]; then
+        mkdir -p "${Backup_Dir}" &> /dev/null
+        if [ $? -eq 0 ]; then
+            Backup_OK=0
+        fi
+    fi
+fi
+
+if [ ${Backup_OK} -eq 0 ]; then
+    _echo "backup directory '${Backup_Dir}'" OK
+else
+    _echo "backup directory '${Backup_Dir}' is not writable" WARNING
+fi
+
+#
+# Attempt to backup original snmpd.conf
+#
+
+Backup_File=${Backup_Dir}/snmpd.conf.$(date +%s).bak
+if [ ${Install} -eq 0 ]; then
+    if cp "${Snmpd_Conf}" "${Backup_File}" &> /dev/null; then
+        _echo "backup file '${Backup_File}'" OK
+        Backup_OK=0
+    else
+        _echo "backup file '${Backup_File}' was not created" WARNING
+        Backup_OK=1
+    fi
+else
+    if [ ${Backup_OK} -eq 0 ]; then
+        _echo "backup file '${Backup_File}' should work" OK
+    else
+        _echo "backup file '${Backup_File}' may not work" WARNING
+    fi
+fi
+
+#
+# Attempt to find an executable to get URLs
+#
+
+# if it's set in $0.env then ensure it's in the path
+[ ${#Get_URL} -gt 0 ] && Get_URL=$(type -p ${Get_URL} 2> /dev/null)
+
+if [ ${#Get_URL} -gt 0 ] && [ -x ${Get_URL} ] && [ ${#Get_URL_Args} -eq 0 ]; then
+    _echo "get url executable '${Get_URL}' was configured incorrectly, ignoring it" WARNING
+fi
+
+# attempt to find a working curl or wget (prefer wget)
+if [ ${#Get_URL} -eq 0 ] || [ ${#Get_URL_Args} -eq 0 ]; then
+    [ ${#Get_URLs} -eq 0 ] && Get_URLs=(wget curl)
+    for Get_URL in ${Get_URLs[@]}; do
+        if [ "${Get_URL}" == "curl" ]; then
+            Get_URL_Args="--silent --fail -o"
+        fi
+
+        if [ "${Get_URL}" == "wget" ]; then
+            Get_URL_Args="-O"
+        fi
+
+        Get_URL=$(type -p ${Get_URL} 2> /dev/null)
+        if [ ${#Get_URL} -gt 0 ] && [ -x ${Get_URL} ]; then
+            break
+        else
+            unset -v Get_URL Get_URL_Args
+        fi
+    done
+fi
+
+if [ ${#Get_URL} -gt 0 ] && [ -x ${Get_URL} ] && [ ${#Get_URL_Args} -gt 0 ]; then
+    _echo "get url executable '${Get_URL}'" OK
+    _echo "get url exectuable arguments are '${Get_URL_Args}'" OK
+else
+    if [ ${#Get_URL} -gt 0 ] && [ ! -x "${Get_URL}" ]; then
+        _echo "get url executable '${Get_URL}' not found" WARNING
+    fi
+
+    if [ ${#Get_URL_Args} -eq 0 ]; then
+        _echo "exectuable arguments are empty" WARNING
+    fi
+
+    unset -v Get_URL Get_URL_Args
+fi
+
+#
+# Attempt to get tmp file from Snmpd_Conf_URL specified in $0.env
+#
+
+Tmp_File_OK=1 # false
+
+if [ ${#Get_URL} -gt 0 ] && [ ${#Snmpd_Conf_URL} -gt 0 ]; then
+
+    # attempt to get the snmpd.conf url
+    ${Get_URL} "${Snmpd_Conf_URL}" ${Get_URL_Args} "${Tmp_File}" &> /dev/null
+    Get_URL_RC=$?
+    if [ ${Get_URL_RC} -eq 0 ]; then
+        _echo "got url '${Snmpd_Conf_URL}'" OK
+    else
+        _echo "get url '${Snmpd_Conf_URL}' failed" WARNING
+    fi
+
+    if snmpdConfOK "${Tmp_File}"; then
+        Tmp_File_OK=0
+    fi
+else
+    debugecho "url not set in '${Extend_Include_Env}'" 10
+fi
+
+#
+# Attempt to get tmp file from a template
+#
+
+if [ ${Tmp_File_OK} -eq 1 ]; then
+    # if there's no tmp file then get url was unsuccessful.
+
+    Template_Dirs=("${Dirname}/templates" "${Dirname}")
+    for Template_Dir in "${Template_Dirs[@]}"; do
+        if [ ${#Snmpd_Conf_Template} -gt 0 ]; then
+            break
+        fi
+
+        Snmpd_Conf_Template_Files=(snmpd.conf.template snmpd.conf)
+        for Snmpd_Conf_Template_File in "${Snmpd_Conf_Template_Files[@]}"; do
+            # look for a template with a variation of the hostname (trim one character at a time)
+            Hostname_Search=${Hostname}
+            while [ ${#Hostname_Search} -gt 0 ]; do
+                Snmpd_Conf_Template="${Template_Dir}/${Snmpd_Conf_Template_File}.${Hostname_Search}"
+                debugecho "looking for a template named ${Snmpd_Conf_Template}" 15
+                if snmpdConfOK "${Snmpd_Conf_Template}"; then
+                    break # out of while
+                else
+                    unset -v Snmpd_Conf_Template
+                fi
+                Hostname_Search=${Hostname_Search%?}
+            done
+
+            # if no variations are found then look for the template, exactly
+            if [ ${#Snmpd_Conf_Template} -gt 0 ]; then
+                # a variation was found, break again out of for
+                break
+            else
+                Snmpd_Conf_Template="${Template_Dir}/${Snmpd_Conf_Template_File}"
+                debugecho "looking for a template named ${Snmpd_Conf_Template}" 15
+                if snmpdConfOK "${Snmpd_Conf_Template}"; then
+                    break
+                else
+                    unset -v Snmpd_Conf_Template
+                fi
+            fi
+        done
+        unset -v Snmpd_Conf_Template_File
+    done
+    unset -v Template_Dir
+
+    if [ ${#Snmpd_Conf_Template} -gt 0 ] && [ -r "${Snmpd_Conf_Template}" ]; then
+        cat "${Snmpd_Conf_Template}" > "${Tmp_File}"
+        if [ $? -eq 0 ]; then
+            _echo "copied template '${Snmpd_Conf_Template}'" OK
+        else
+            _echo "copy template '${Snmpd_Conf_Template}' failed" WARNING
+            rm -f "${Tmp_File}" &> /dev/null
+        fi
+    else
+        _echo "template file not found" WARNING
+    fi
+
+    if snmpdConfOK "${Tmp_File}"; then
+        Tmp_File_OK=0
+    fi
+else
+    debugecho "using tmp file from ${Snmpd_Conf_URL}" 15
+fi
+
+#
+# Attempt to get tmp file from original snmpd.conf
+#
+
+# get url failed and there's no template ... use the original snmpd.conf
+if [ ${Tmp_File_OK} -eq 1 ]; then
+    cat "${Snmpd_Conf}" > "${Tmp_File}"
+    if [ $? -eq 0 ]; then
+        _echo "copied original '${Snmpd_Conf}'" OK
+    else
+        _echo "copy original '${Snmpd_Conf}' failed" WARNING
+        rm -f "${Tmp_File}" &> /dev/null
+    fi
+else
+    debugecho "using tmp file from ${Snmpd_Conf}" 15
+fi
+
+#
+# Validate tmp file (final)
+#
+
+if snmpdConfOK "${Tmp_File}"; then
+    Tmp_File_OK=0
+else
+    Tmp_File_OK=1
+fi
+
+if [ "${Tmp_File_OK}" != "0" ]; then
+    _echo "tmp file '${Tmp_File}' validation failed" ERROR
+    aborting "tmp file '${Tmp_File}' validation failed" ERROR
+fi
+
+#
+# Execute setup-snmp.d dependencies, before attempting to extend (best effort)
+#
+# * check for dependencies needed by bind, php-fpm, httpd, etc.
+# * dependencies may be optional packages or modules such as httpd server-status
+#
+
+[ ${#Setup_Snmpd_D} -eq 0 ] && Setup_Snmpd_D=0
+
+if [ "${Setup_Snmpd_D}" == "0" ]; then
+    if [ -d "${0}.d" ]; then
+        while read Setup_Snmp_D; do
+            _echo "using source ${Setup_Snmp_D}" OK
+            source "${Setup_Snmp_D}"
+        done <<< "$(grep -l ^"#\!.*bash" ${0}.d/* | xargs grep -l "this script was executed, it must be sourced" | sort)"
+        unset -v Setup_Snmp_D
+    fi
+fi
+
+#
+# Validate optional packages are installed
+#
+
+if [ ${#Optional_Package} -gt 0 ]; then
+    Optional_Packages+=(${Optional_Package})
+fi
+
+if [ ${#Optional_Packages} -gt 0 ]; then
+    for Optional_Package in ${Optional_Packages[@]}; do
+        [ "${Optional_Package,,}" == "none" ] && continue
+        ${Package_Installer} ${Package_Installer_Package_Installer_Args_Installed} ${Optional_Package} &> /dev/null
+        if [ $? -eq 0 ]; then
+            _echo "optional package ${Optional_Package} is installed" OK
+        else
+            if [ ${Install} -eq 0 ]; then
+                ${Package_Installer} ${Package_Installer_Args_Install} ${Optional_Package} &> /dev/null
+                if [ $? -eq 0 ]; then
+                    _echo "optional package ${Optional_Package} was installed" OK
+                else
+                    _echo "optional package ${Optional_Package} failed to install" WARNING
+                fi
+            else
+                _echo "optional package ${Optional_Package} needs to be installed" WARNING
+            fi
+        fi
+    done
+    unset -v Optional_Package
+fi
+
+exit
+#
+# if librenms-setup-extend.sh is found then attempt to extend the tmp file
+#
+
+Extend_Tmp_File=1 # false
+
+# fail safe; huh?
+
+Extend_Tmp_File=0
+
+if [ ${Extend_Tmp_File} -eq 0 ]; then
+    if [ ${#LibreNMS_Setup_Extend} -eq 0 ]; then
+        LibreNMS_Setup_Extend="${Dirname}/librenms/librenms-setup-extend.sh"
+    fi
+
+    if [ -f "${LibreNMS_Setup_Extend}" ]; then
+        Snmpd_Conf=${Tmp_File} bash "${LibreNMS_Setup_Extend}" install &> /dev/null
+        if [ $? -eq 0 ]; then
+            _echo "extended ${Tmp_File} for librenms" OK
+        else
+            _echo "extending ${Tmp_File} for librenms failed" WARNING
+        fi
+    fi
+fi
+
+# always sort so diffs are consistent
+if [ -s "${Tmp_File}" ]; then
+    sort -u "${Tmp_File}" -o "${Tmp_File}"
+    #cat "${Tmp_File}"
+fi
+
+diff -q "${Snmpd_Conf}" "${Tmp_File}" &> /dev/null
+Snmpd_Conf_Diff=$?
+
+Snmpd_Conf_OK=1 # false
+
+if [ ${Snmpd_Conf_Diff} -eq 0 ]; then
+    _echo "${Snmpd_Conf} does not need to be updated" OK
+    Snmpd_Conf_OK=0
+else
+    _echo "${Snmpd_Conf} differ" NOTICE
+    if [ ${Install} -eq 1 ]; then
+        echo
+        echo diff "${Snmpd_Conf}" "${Tmp_File}"
+        diff "${Snmpd_Conf}" "${Tmp_File}"
+        echo
+    fi
+fi
+
+if [ ${Snmpd_Conf_OK} -eq 0 ]; then
+    _echo "updating ${Snmpd_Conf} succeeded" OK
+    # systemctl or service?
+else
+    _echo "updating ${Snmpd_Conf} failed" ERROR
+fi
+
+#
+# if it changed, install snmpd.conf and restart snmpd
+#
+
+Restart_Snmpd=1 # false
+if diff -q "${Snmpd_Conf}" "${Backup_File}" &> /dev/null; then
+    if ! cleanup "${Backup_File}"; then
+        _echo "removing backup file ${Backup_File} failed" WARNING
+    fi
+else
+    _echo "preserved backup file ${Backup_File}" OK
+    Restart_Snmpd=0 # true
+fi
+
+if [ ${Restart_Snmpd} -eq 0 ]; then
+    _echo "restarting snmpd" WARNING
+fi
+
+#
+# cleanup
+#
+
+if ! cleanup "${Tmp_File}"; then
+    aborting "cleanup '${Tmp_File}' failed"
+fi
