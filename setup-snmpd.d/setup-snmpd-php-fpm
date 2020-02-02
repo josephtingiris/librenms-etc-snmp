@@ -1,0 +1,125 @@
+#!/bin/bash
+
+# If php-fpm is found running and /status fails then attempt to add a config and restart php-fpm & httpd
+
+# Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+# Dependencies:
+# setup-snmpd
+# pidof
+
+#
+# 20200201, joseph.tingiris@gmail.com, created
+#
+
+if [ "${0}" == "${BASH_SOURCE}" ]; then
+    printf "\naborting ... this script was executed, it must be sourced\n\n"; exit 1
+fi
+
+# needed for extend-phpfpmsp.sh
+if pidof php-fpm &> /dev/null; then
+    if pidof httpd &> /dev/null; then
+        debugecho "php-fpm is running" 5
+
+        Extend_PHPFPM_RC=1
+        if [ -f "${Dirname}/librenms/extend-phpfpmsp.sh" ]; then
+            bash "${Dirname}/librenms/extend-phpfpmsp.sh" &> /dev/null
+            Extend_PHPFPM_RC=$?
+        fi
+
+        if [ ${Extend_PHPFPM_RC} -eq 0 ]; then
+            _echo "php-fpm /status" OK
+        fi
+
+        if [ ${Extend_PHPFPM_RC} -ne 0 ]; then
+            _echo "php-fpm /status doesn't work" WARNING
+        fi
+
+        if [ ${Distro_EL} -eq 0 ] && [ ${Extend_PHPFPM_RC} -ne 0 ]; then
+            HTTPD_Conf_D="/etc/httpd/conf.d"
+            if  [ -d "${HTTPD_Conf_D}" ]; then
+                HTTPD_PHPFPM_Status_Conf="${HTTPD_Conf_D}/php-fpm-status.conf"
+            fi
+        fi
+
+        PHPFPM_Status_Conf_OK=1
+        if [ ${#HTTPD_PHPFPM_Status_Conf} -gt 0 ]; then
+            PHPFPM_Status_Conf_OK=0
+            if [ -s ${HTTPD_PHPFPM_Status_Conf} ]; then
+                debugecho "php-fpm ${HTTPD_PHPFPM_Status_Conf} found" 15
+            else
+                debugecho "php-fpm ${HTTPD_PHPFPM_Status_Conf} not found" 15
+            fi
+        fi
+
+        if [ ${Distro_EL} -eq 0 ] && [ ${PHPFPM_Status_Conf_OK} -eq 0 ]; then
+            if [ ${Install} -eq 0 ]; then
+                echo "<Location "/status">" > "${HTTPD_PHPFPM_Status_Conf}"
+                echo "    Order Allow,Deny" >> ${HTTPD_PHPFPM_Status_Conf}""
+                echo "    Allow from 127.0.0.1" >> ${HTTPD_PHPFPM_Status_Conf}""
+                echo "    ProxyPass unix:/var/run/php-fpm/www.sock|fcgi://localhost/status" >> ${HTTPD_PHPFPM_Status_Conf}""
+                echo "</Location>" >> ${HTTPD_PHPFPM_Status_Conf}""
+                chmod 0644 "${HTTPD_PHPFPM_Status_Conf}" &> /dev/null
+                if [ $? -eq 0 ]; then
+                    _echo "php-fpm '${HTTPD_PHPFPM_Status_Conf}' was created" OK
+                    PHPFPM_Status_Conf_OK=0
+                else
+                    _echo "php-fpm '${HTTPD_PHPFPM_Status_Conf}' create failed" WARNING
+                    PHPFPM_Status_Conf_OK=1
+                fi
+            else
+                _echo "php-fpm '${HTTPD_PHPFPM_Status_Conf}' was not created" WARNING
+                PHPFPM_Status_Conf_OK=1
+            fi
+        fi
+
+        PHPFPM_Backout=1 # false
+        PHPFPM_Services=(php-fpm httpd)
+        if [ ${Distro_EL} -eq 0 ] && [ ${PHPFPM_Status_Conf_OK} -eq 0 ]; then
+            for PHPFPM_Service in ${PHPFPM_Services[@]}; do
+                if [ ${Install} -eq 0 ]; then
+                    restartService ${PHPFPM_Service}
+                    if pidof ${PHPFPM_Service} &> /dev/null; then
+                        _echo "${PHPFPM_Service} restart" OK
+                    else
+                        _echo "${PHPFPM_Service} restart failed" WARNING
+                        PHPFPM_Backout=0
+                    fi
+                else
+                    _echo "${PHPFPM_Service} needs to be restarted" WARNING
+                fi
+            done
+        fi
+
+        if [ ${Distro_EL} -eq 0 ] && [ ${PHPFPM_Backout} -eq 0 ]; then
+            _echo "backing out '${HTTPD_PHPFPM_Status_Conf}'" WARNING
+            rm -f ${HTTPD_PHPFPM_Status_Conf} &> /dev/null
+            for PHPFPM_Service in ${PHPFPM_Services[@]}; do
+                restartService ${PHPFPM_Service}
+                if pidof ${PHPFPM_Service} &> /dev/null; then
+                    _echo "${PHPFPM_Service} restart" OK
+                else
+                    _echo "${PHPFPM_Service} restart failed" WARNING
+                    aborting "${PHPFPM_Service} restart failed"
+                fi
+            done
+        fi
+    else
+        debugecho "httpd is not running" 5
+    fi
+else
+    debugecho "php-fpm is not running" 5
+fi
