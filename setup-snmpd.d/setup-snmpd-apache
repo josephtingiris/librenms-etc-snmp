@@ -1,0 +1,121 @@
+#!/bin/bash
+
+# If httpd is found running and /server-status fails then attempt to add a config & restart httpd
+
+# Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+# Dependencies:
+# setup-snmpd
+# pidof
+
+#
+# 20200201, joseph.tingiris@gmail.com, created
+#
+
+if [ "${0}" == "${BASH_SOURCE}" ]; then
+    printf "\naborting ... this script was executed, it must be sourced\n\n"; exit 1
+fi
+
+# needed for extend-apache.sh
+if pidof httpd &> /dev/null; then
+    debugecho "httpd is running" 5
+
+    Extend_Apache_RC=1
+    if [ -f "${Dirname}/librenms/extend-apache.sh" ]; then
+        bash "${Dirname}/librenms/extend-apache.sh" &> /dev/null
+        Extend_Apache_RC=$?
+    fi
+
+    if [ ${Extend_Apache_RC} -eq 0 ]; then
+        _echo "httpd /server-status" OK
+    fi
+
+    if [ ${Extend_Apache_RC} -ne 0 ]; then
+        _echo "httpd /server-status doesn't work" WARNING
+    fi
+
+    if [ ${Distro_EL} -eq 0 ] && [ ${Extend_Apache_RC} -ne 0 ]; then
+        HTTPD_Conf_D="/etc/httpd/conf.d"
+        if  [ -d "${HTTPD_Conf_D}" ]; then
+            HTTPD_Server_Status_Conf="${HTTPD_Conf_D}/server-status.conf"
+        fi
+    fi
+
+    Apache_Status_Conf_OK=1
+    if [ ${#HTTPD_Server_Status_Conf} -gt 0 ]; then
+        Apache_Status_Conf_OK=0
+        if [ -s ${HTTPD_Server_Status_Conf} ]; then
+            debugecho "server-status ${HTTPD_Server_Status_Conf} found" 15
+        else
+            debugecho "server-status ${HTTPD_Server_Status_Conf} not found" 15
+        fi
+    fi
+
+    if [ ${Distro_EL} -eq 0 ] && [ ${Apache_Status_Conf_OK} -eq 0 ]; then
+        if [ ${Install} -eq 0 ]; then
+            echo "<IfModule status_module>" > "${HTTPD_Server_Status_Conf}"
+            echo "    ExtendedStatus On" >> "${HTTPD_Server_Status_Conf}"
+            echo "    <Location /server-status>" >> "${HTTPD_Server_Status_Conf}"
+            echo "        SetHandler server-status" >> "${HTTPD_Server_Status_Conf}"
+            echo "    <RequireAny>" >> "${HTTPD_Server_Status_Conf}"
+            echo "        Require ip 127.0.0.1" >> "${HTTPD_Server_Status_Conf}"
+            echo "        Require ip ::1" >> "${HTTPD_Server_Status_Conf}"
+            echo "    </RequireAny>" >> "${HTTPD_Server_Status_Conf}"
+            echo "    </Location>" >> "${HTTPD_Server_Status_Conf}"
+            echo "</IfModule>" >> "${HTTPD_Server_Status_Conf}"
+            chmod 0644 "${HTTPD_Server_Status_Conf}" &> /dev/null
+            if [ $? -eq 0 ]; then
+                _echo "httpd '${HTTPD_Server_Status_Conf}'" OK
+                Apache_Status_Conf_OK=0
+            else
+                _echo "httpd '${HTTPD_Server_Status_Conf}' create failed" WARNING
+                Apache_Status_Conf_OK=1
+            fi
+        else
+            _echo "httpd '${HTTPD_Server_Status_Conf}' was not created" WARNING
+            Apache_Status_Conf_OK=1
+        fi
+    fi
+
+    Apache_Backout=1 # false
+    if [ ${Distro_EL} -eq 0 ] && [ ${Apache_Status_Conf_OK} -eq 0 ]; then
+        if [ ${Install} -eq 0 ]; then
+            restartService httpd
+            if pidof httpd &> /dev/null; then
+                _echo "httpd restart" OK
+            else
+                _echo "httpd restart failed" WARNING
+                Apache_Backout=0
+            fi
+        else
+            _echo "httpd needs to be restarted" WARNING
+        fi
+    fi
+
+    if [ ${Distro_EL} -eq 0 ] && [ ${Apache_Backout} -eq 0 ]; then
+        _echo "backing out '${HTTPD_Server_Status_Conf}'" WARNING
+        rm -f ${HTTPD_Server_Status_Conf} &> /dev/null
+        restartService httpd
+        if pidof httpd &> /dev/null; then
+            _echo "httpd restart" OK
+        else
+            _echo "httpd restart failed" ERROR
+            aborting "httpd restart failed"
+        fi
+    fi
+else
+    debugecho "httpd is not running" 5
+fi
