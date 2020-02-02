@@ -41,7 +41,12 @@ fi
 #
 
 function _echo() {
-    printf "[$(date)] [$Hostname] %-70.70s %s\n" "$1" "[$2]"
+    let Steps=${Steps}+1
+    printf "[$(date)] ${Basename} ${Hostname} %2s %-67.67s %s\n" "${Steps}" "$1" "[$2]"
+
+    if [ "${2}" == "WARNING" ]; then
+        let Warnings=${Warnings}+1
+    fi
 }
 
 function restartService() {
@@ -70,12 +75,12 @@ function restartService() {
         if [ ${restart_ok} -eq 0 ] && [ ${#restart_exec} -gt 0 ]; then
 
             if [ "${restart_cmd}" == "systemctl" ]; then
-                ${restart_exec} restart ${service_name}
+                ${restart_exec} restart ${service_name} &> /dev/null
                 restart_rc=$?
             fi
 
             if [ "${restart_cmd}" == "service" ]; then
-                ${restart_exec} ${service_name} restart
+                ${restart_exec} ${service_name} restart &> /dev/null
                 restart_rc=$?
             fi
 
@@ -121,6 +126,9 @@ function usage() {
 
 Basename=${0##*/}
 Dirname=${0%/*}
+
+Steps=0 # counter
+Warnings=0 # counter
 
 #
 # Main
@@ -507,7 +515,7 @@ else
 fi
 
 #
-# Validate tmp file (final)
+# Validate tmp file
 #
 
 if snmpdConfOK "${Tmp_File}"; then
@@ -533,7 +541,7 @@ fi
 if [ "${Setup_Snmpd_D}" == "0" ]; then
     if [ -d "${0}.d" ]; then
         while read Setup_Snmp_D; do
-            _echo "using source ${Setup_Snmp_D}" OK
+            _echo "sourcing ${Setup_Snmp_D}" OK
             source "${Setup_Snmp_D}"
         done <<< "$(grep -l ^"#\!.*bash" ${0}.d/* | xargs grep -l "this script was executed, it must be sourced" | sort)"
         unset -v Setup_Snmp_D
@@ -570,18 +578,11 @@ if [ ${#Optional_Packages} -gt 0 ]; then
     unset -v Optional_Package
 fi
 
-exit
 #
-# if librenms-setup-extend.sh is found then attempt to extend the tmp file
+# If librenms-setup-extend.sh is found then attempt to extend the tmp file
 #
 
-Extend_Tmp_File=1 # false
-
-# fail safe; huh?
-
-Extend_Tmp_File=0
-
-if [ ${Extend_Tmp_File} -eq 0 ]; then
+if [ ${Tmp_File_OK} -eq 0 ]; then
     if [ ${#LibreNMS_Setup_Extend} -eq 0 ]; then
         LibreNMS_Setup_Extend="${Dirname}/librenms/librenms-setup-extend.sh"
     fi
@@ -596,58 +597,111 @@ if [ ${Extend_Tmp_File} -eq 0 ]; then
     fi
 fi
 
-# always sort so diffs are consistent
+#
+# Always sort unqiue, so diffs are consistent
+#
+
 if [ -s "${Tmp_File}" ]; then
-    sort -u "${Tmp_File}" -o "${Tmp_File}"
-    #cat "${Tmp_File}"
+    sort -u "${Tmp_File}" -o "${Tmp_File}" 2> /dev/null
+    if  [ $? -eq 0 ]; then
+        _echo "sorted ${Tmp_File}" OK
+    else
+        _echo "sorting ${Tmp_File} failed" WARNING
+    fi
 fi
+
+#
+# Validate tmp file (final)
+#
+
+if ! snmpdConfOK "${Tmp_File}"; then
+    aborting "${Tmp_File} is invalid"
+fi
+
+#
+# Determine if snmpd.conf needs to be updated and snmpd restarted
+#
+
+Snmpd_Conf_OK=1 # false
+Snmpd_Restart=1 # false
 
 diff -q "${Snmpd_Conf}" "${Tmp_File}" &> /dev/null
 Snmpd_Conf_Diff=$?
 
-Snmpd_Conf_OK=1 # false
-
 if [ ${Snmpd_Conf_Diff} -eq 0 ]; then
-    _echo "${Snmpd_Conf} does not need to be updated" OK
     Snmpd_Conf_OK=0
 else
-    _echo "${Snmpd_Conf} differ" NOTICE
-    if [ ${Install} -eq 1 ]; then
+    debugecho "${Snmpd_Conf} differ" 15
+    if [ ${Install} -eq 1 ] || [ ${Debug} -gt 0 ]; then
+        if type -p colordiff &> /dev/null; then
+            cdiff=colordiff
+        else
+            cdiff=diff
+        fi
+
         echo
-        echo diff "${Snmpd_Conf}" "${Tmp_File}"
-        diff "${Snmpd_Conf}" "${Tmp_File}"
+        echo ${cdiff} "${Snmpd_Conf}" "${Tmp_File}"
+        ${cdiff} "${Snmpd_Conf}" "${Tmp_File}"
         echo
     fi
 fi
 
 if [ ${Snmpd_Conf_OK} -eq 0 ]; then
-    _echo "updating ${Snmpd_Conf} succeeded" OK
-    # systemctl or service?
-else
-    _echo "updating ${Snmpd_Conf} failed" ERROR
-fi
+    _echo "${Snmpd_Conf} does not need to be updated" OK
+    if ! cleanup "${Tmp_File} ${Backup_File}"; then
+        _echo "cleanup temporary files failed" WARNING
+        exit 1
+    fi
 
-#
-# if it changed, install snmpd.conf and restart snmpd
-#
-
-Restart_Snmpd=1 # false
-if diff -q "${Snmpd_Conf}" "${Backup_File}" &> /dev/null; then
-    if ! cleanup "${Backup_File}"; then
-        _echo "removing backup file ${Backup_File} failed" WARNING
+    if [ ${Warnings} -eq 0 ]; then
+        exit 0
     fi
 else
-    _echo "preserved backup file ${Backup_File}" OK
-    Restart_Snmpd=0 # true
-fi
-
-if [ ${Restart_Snmpd} -eq 0 ]; then
-    _echo "restarting snmpd" WARNING
+    _echo "${Snmpd_Conf} needs to be updated" NOTICE
 fi
 
 #
-# cleanup
+# Install snmpd.conf and restart snmpd
 #
+
+if [ ${Install} -eq 0 ]; then
+    Snmpd_Backout=1 # false
+
+    if [ ${Snmpd_Conf_OK} -ne 0 ]; then
+        cp "${Tmp_File}" "${Snmpd_Conf}" &> /dev/null
+        if [ $? -eq 0 ]; then
+            _echo "updated '${Snmpd_Conf}'" OK
+            Snmpd_Restart=0
+        else
+            _echo "updating '${Snmpd_Conf}' failed" WARNING
+        fi
+    fi
+
+    if [ ${Snmpd_Restart} -eq 0 ] || [ ${Warnings} -gt 0 ]; then
+        restartService snmpd
+        if pidof snmpd &> /dev/null; then
+            _echo "snmpd restart" OK
+        else
+            _echo "snmpd restart failed" ERROR
+            Snmpd_Backout=0
+        fi
+    fi
+
+    if [ ${Snmpd_Backout} -eq 0 ]; then
+        cp "${Backup_File}" "${Snmpd_Conf}" &> /dev/null
+        restartService snmpd
+        if pidof snmpd &> /dev/null; then
+            _echo "snmpd backout" OK
+        else
+            _echo "snmpd backout failed" ERROR
+        fi
+    fi
+else
+    # don't keep backups when checking (not installing)
+    if ! cleanup "${Backup_File}"; then
+        _echo "cleanup '${Backup_File}' failed" WARNING
+    fi
+fi
 
 if ! cleanup "${Tmp_File}"; then
     aborting "cleanup '${Tmp_File}' failed"
