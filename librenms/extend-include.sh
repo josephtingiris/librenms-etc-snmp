@@ -53,10 +53,15 @@ function _echo() {
     [ ${#Steps} -eq 0 ] && Steps=0 # counter
     [ ${#Warnings} -eq 0 ] && Warnings=0 # counter
 
-    let Steps=${Steps}+1
-    printf "[$(date)] ${Basename} ${Hostname} %2s %-71.71s %s\n" "${Steps}" "$1" "[$2]"
+    local status_message
+    if [ ${#2} -gt 0 ]; then
+        status_message="[${2^^}]"
+    fi
 
-    if [ "${2}" == "WARNING" ]; then
+    let Steps=${Steps}+1
+    printf "[$(date)] ${Basename} ${Hostname} %2s %-71.71s %s\n" "${Steps}" "${1}" "${status_message}"
+
+    if [ "${status_message}" == "[WARNING]" ]; then
         let Warnings=${Warnings}+1
     fi
 }
