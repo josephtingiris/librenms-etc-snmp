@@ -185,6 +185,11 @@ fi
 [ ${#Hostname} -eq 0 ] && Hostname=$(hostname -s)
 [ ${#Snmpd_Conf} -eq 0 ] && Snmpd_Conf=/etc/snmp/snmpd.conf
 
+# if it exists and is readable then source $0.env
+if [ -r "${Extend_Include_Env}" ]; then
+    source "${Extend_Include_Env}"
+fi
+
 #
 # Set execute bits on dependencies
 #
