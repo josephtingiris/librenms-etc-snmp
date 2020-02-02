@@ -44,15 +44,6 @@ fi
 # Functions
 #
 
-function _echo() {
-    let Steps=${Steps}+1
-    printf "[$(date)] ${Basename} ${Hostname} %2s %-71.71s %s\n" "${Steps}" "$1" "[$2]"
-
-    if [ "${2}" == "WARNING" ]; then
-        let Warnings=${Warnings}+1
-    fi
-}
-
 function restartService() {
     local service_name="$1"
 
@@ -177,7 +168,6 @@ function usage() {
 Basename=${0##*/}
 Dirname=${0%/*}
 
-Steps=0 # counter
 Warnings=0 # counter
 
 #

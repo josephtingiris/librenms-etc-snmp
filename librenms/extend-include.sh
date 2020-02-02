@@ -46,6 +46,22 @@ fi
 #
 
 #
+# _echo(): output a consistent message
+#
+
+function _echo() {
+    [ ${#Steps} -eq 0 ] && Steps=0 # counter
+    [ ${#Warnings} -eq 0 ] && Warnings=0 # counter
+
+    let Steps=${Steps}+1
+    printf "[$(date)] ${Basename} ${Hostname} %2s %-71.71s %s\n" "${Steps}" "$1" "[$2]"
+
+    if [ "${2}" == "WARNING" ]; then
+        let Warnings=${Warnings}+1
+    fi
+}
+
+#
 # aborting(): output all arguments to stderr and exit with non-zero return code
 #
 
