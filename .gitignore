@@ -3,6 +3,7 @@
 !README.md
 !LICENSE.txt
 !snmpd.conf.example*
+!setup-snmpd
 /*/
 !/librenms/
 !/setup-snmpd.d/
