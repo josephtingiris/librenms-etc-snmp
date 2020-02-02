@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This script runs /etc/snmp/librenms scripts and adds extend entries to snmpd.conf
+# Check or install net-snmp for LibreNMS (on an Enterprise Linux system) 
 
 # Copyright (C) 2020 Joseph Tingiris (joseph.tingiris@gmail.com)
 
