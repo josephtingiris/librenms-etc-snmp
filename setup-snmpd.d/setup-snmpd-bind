@@ -1,0 +1,34 @@
+#!/bin/bash
+
+if [ "${0}" == "${BASH_SOURCE}" ]; then
+    printf "\naborting ... this script was executed, it must be sourced\n\n"; exit 1
+fi
+
+# if bind is found running then add optional packages for extend-bind.pl
+
+# needed for extend-bind.pl
+if [ -f /etc/named.conf ]; then
+    if pidof bind &> /dev/null; then
+        debugecho "bind is running" 5
+        Extend_Bind_RC=1
+        if [ -f "${Dirname}/librenms/extend-bind.pl" ]; then
+            if [ -f "${Dirname}/librenms/extend-bind.conf" ]; then
+                Extend_Bind_Args="-c ${Dirname}/librenms/extend-bind.conf"
+            fi
+
+            bash "${Dirname}/librenms/extend-bind.pl" ${Extend_Bind_Args} &> /dev/null
+            Extend_Bind_RC=$?
+        fi
+
+        if [ ${Extend_Bind_RC} -eq 0 ]; then
+            _echo "extend bind stats" OK
+        else
+            _echo "extend bind stats failed" WARNING
+            Optional_Packages+=(perl perl-File-ReadBackwards)
+        fi
+    else
+        debugecho "bind is not running" 5
+    fi
+else
+    debugecho "/etc/named.conf file not found" 5
+fi
