@@ -867,10 +867,4 @@ if ! cleanup "${Tmp_File}"; then
     aborting "cleanup '${Tmp_File}' failed"
 fi
 
-if [ ${Install} -eq 0 ]; then
-    # all warnings were corrected and nothing triggered an abort
-    # if install made it this far then it succeeded
-    exit 0
-fi
-
 exit ${Warnings}
