@@ -1,0 +1,6 @@
+---
+# file: setup_snmpd.yml
+- hosts: all
+  gather_facts: false
+  roles:
+    - setup_snmpd

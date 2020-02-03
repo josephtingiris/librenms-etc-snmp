@@ -1,0 +1,173 @@
+---
+# file: roles/setup_snmpd/tasks/main.yml
+
+- name: "set setup_snmpd_archive"
+  set_fact:
+    setup_snmpd_archive: /opt/librenms/etc/snmp/.ansible/files/setup_snmpd/setup_snmpd.tar.gz
+
+- name: "fail when setup_snmpd_archive is not defined"
+  fail:
+    msg: "setup_snmpd_archive is not defined"
+  when:
+    - setup_snmpd_archive is not defined
+
+- name: "set setup_snmpd_dir"
+  set_fact:
+    setup_snmpd_dir: /var/tmp/setup-snmpd-ansible
+
+- name: "fail when setup_snmpd_dir is not defined"
+  fail:
+    msg: "setup_snmpd_dir is not defined"
+  when:
+    - setup_snmpd_dir is not defined
+
+#
+# check or install
+#
+
+- name: "remove {{ setup_snmpd_dir }}"
+  changed_when: false
+  file:
+    path: "{{ setup_snmpd_dir }}"
+    state: absent
+
+- name: "validate {{ setup_snmpd_dir }}"
+  changed_when: false
+  file:
+    path: "{{ setup_snmpd_dir }}"
+    state: directory
+
+- name: "untar /var/tmp/setup_snmpd.tar.gz to {{ setup_snmpd_dir }}"
+  changed_when: false
+  unarchive:
+    src: "{{ setup_snmpd_archive }}"
+    dest: "{{ setup_snmpd_dir }}"
+    owner: root
+    group: root
+
+- name: "stat {{ setup_snmpd_dir}}/setup-snmpd"
+  register: stat_setup_snmpd
+  stat:
+    path: "{{ setup_snmpd_dir }}/setup-snmpd"
+
+- name: "[check] execute {{ setup_snmpd_dir }}/setup-snmpd check"
+  shell: "{{ setup_snmpd_dir }}/setup-snmpd check 2>&1 | tee /var/tmp/ansible-snmpd-check.log"
+  register: check_setup_snmpd_result
+  failed_when: "check_setup_snmpd_result.rc != 0"
+  changed_when: '"NOTICE" in check_setup_snmpd_result.stdout'
+  when:
+    - stat_setup_snmpd.stat.executable
+
+- name: "debug output for {{ setup_snmpd_dir }}/setup-snmpd check"
+  debug:
+    var: check_setup_snmpd_result
+    verbosity: 2
+
+- name: "remove {{ setup_snmpd_dir }}"
+  changed_when: false
+  file:
+    path: "{{ setup_snmpd_dir }}"
+    state: absent
+
+#
+# install only
+#
+
+- name: "[install] set install_setup_snmpd_dir"
+  set_fact:
+    install_setup_snmpd_dir: /etc/snmp
+
+- name: "[install] fail when install_setup_snmpd_dir is not defined"
+  fail:
+    msg: "install_setup_snmpd_dir is not defined"
+  when:
+    - setup_snmpd_action == "install"
+    - install_setup_snmpd_dir is not defined
+
+- name: "[install] stat {{ install_setup_snmpd_dir }}"
+  register: stat_etc_snmp
+  stat:
+    path: "{{ install_setup_snmpd_dir }}"
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+
+- name: "[install] stat {{ install_setup_snmpd_dir }}/snmpd.conf"
+  register: stat_etc_snmpd_conf
+  stat:
+    path: "{{ install_setup_snmpd_dir }}/snmpd.conf"
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+    - stat_etc_snmp.stat.exists
+
+- name: "[install] backup /etc/snmp/snmpd.conf to /var/tmp/setup-snmpd-ansible.conf.bak"
+  copy: src=/etc/snmp/snmpd.conf dest=/var/tmp/setup-snmpd-ansible.conf.bak owner=root group=root mode=0640 backup=yes remote_src=yes
+  register: result_backup_snmpd_conf
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+    - stat_etc_snmpd_conf.stat.exists
+
+- name: "[install] remove {{ install_setup_snmpd_dir }}"
+  changed_when: false
+  file:
+    path: "{{ install_setup_snmpd_dir }}"
+    state: absent
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+
+- name: "[install] validate {{ install_setup_snmpd_dir }}"
+  changed_when: false
+  file:
+    path: "{{ install_setup_snmpd_dir }}"
+    state: directory
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+
+- name: "[install] untar /var/tmp/setup_snmpd.tar.gz to {{ install_setup_snmpd_dir }}"
+  changed_when: false
+  unarchive:
+    src: "{{ setup_snmpd_archive }}"
+    dest: "{{ install_setup_snmpd_dir }}"
+    owner: root
+    group: root
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+
+- name: "[install] stat {{ install_setup_snmpd_dir}}/setup-snmpd"
+  register: stat_install_setup_snmpd
+  stat:
+    path: "{{ install_setup_snmpd_dir }}/setup-snmpd"
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+
+- name: "[install] execute {{ install_setup_snmpd_dir }}/setup-snmpd install"
+  shell: "{{ install_setup_snmpd_dir }}/setup-snmpd install 2>&1 | tee /var/tmp/ansible-snmpd-install.log"
+  register: install_setup_snmpd_result
+  failed_when: "install_setup_snmpd_result.rc != 0"
+  changed_when: '"NOTICE" in install_setup_snmpd_result.stdout'
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+    - stat_install_setup_snmpd.stat.executable
+
+- name: "[install] debug output for {{ install_setup_snmpd_dir }}/setup-snmpd install"
+  debug:
+    var: install_setup_snmpd_result
+    verbosity: 2
+  when:
+    - setup_snmpd_action == "install"
+
+- name: "restart snmpd service"
+  service:
+    name: snmpd
+    state: restarted
+  when:
+    - setup_snmpd_action == "install"
+    - check_setup_snmpd_result.changed
+    - install_setup_snmpd_result.changed

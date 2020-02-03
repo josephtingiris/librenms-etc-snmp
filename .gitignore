@@ -5,6 +5,7 @@
 !LICENSE*
 !setup-snmpd
 /*/
+!/.ansible/
 !/librenms/
 !/setup-snmpd.d/
 !/templates/
