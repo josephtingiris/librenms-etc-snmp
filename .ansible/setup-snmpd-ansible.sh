@@ -36,7 +36,7 @@
 #
 
 function usage() {
-    printf "\nusage: $0 <check|install> <host limit pattern>\n\n"; exit 1
+    printf "\nusage: $0 <check|install|upgrade> <host limit pattern>\n\n"; exit 1
 }
 
 # for more, see extend.include.sh
@@ -66,6 +66,8 @@ if [ -r "${Extend_Include_Env}" ]; then
 fi
 
 Install=2
+Upgrade=1
+
 if [ "$1" == "install" ]; then
     Install=0 # true
     shift
@@ -73,6 +75,12 @@ fi
 
 if [ "$1" == "check" ]; then
     Install=1 # false
+    shift
+fi
+
+if [ "$1" == "upgrade" ]; then
+    Install=0 # true
+    Upgrade=0 # true
     shift
 fi
 
@@ -261,7 +269,11 @@ else
 fi
 
 if  [ ${Install} -eq 0 ]; then
-    Setup_Snmpd_Action="install"
+    if  [ ${Upgrade} -eq 0 ]; then
+        Setup_Snmpd_Action="upgrade"
+    else
+        Setup_Snmpd_Action="install"
+    fi
 else
     Setup_Snmpd_Action="check"
 fi
@@ -270,5 +282,5 @@ echo
 export ANSIBLE_CONFIG=${Ansible_Cfg}
 echo ansible-playbook -i ${Ansible_Inventory} ${Ansible_Playbook} --limit "${Limit}"
 echo
-ansible-playbook -i ${Ansible_Inventory} ${Ansible_Playbook} --extra-vars "setup_snmpd_action=$Setup_Snmpd_Action" --limit "${Limit}"
+ansible-playbook -i ${Ansible_Inventory} ${Ansible_Playbook} --extra-vars "setup_snmpd_action=$Setup_Snmpd_Action" --limit "${Limit}" $@
 echo
