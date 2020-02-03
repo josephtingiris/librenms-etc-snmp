@@ -57,12 +57,9 @@ if [ -r "${Extend_Include_Env}" ]; then
     source "${Extend_Include_Env}"
 fi
 
-echo $PWD
-pwd
-if [ -r ../setup-snmpd.version ]; then
-    cat ../setup-snmpd.version
+if [ -r "${Dirname}/../setup-snmpd.version" ]; then
+    cat "${Dirname}/../setup-snmpd.version"
     exit 0
 fi
-echo did not find version
 
 exit 1
