@@ -29,7 +29,7 @@
 #
 
 function usage() {
-    printf "\nusage: $0 [check|install]\n\n"
+    printf "\nusage: $0 <check|install>\n\n"
     exit 1
 }
 
