@@ -22,7 +22,7 @@
     - setup_snmpd_dir is not defined
 
 #
-# check, install, or upgrade
+# check or install
 #
 
 - name: "remove {{ setup_snmpd_dir }}"
@@ -30,12 +30,16 @@
   file:
     path: "{{ setup_snmpd_dir }}"
     state: absent
+  when:
+    - setup_snmpd_action != "upgrade"
 
 - name: "validate {{ setup_snmpd_dir }}"
   changed_when: false
   file:
     path: "{{ setup_snmpd_dir }}"
     state: directory
+  when:
+    - setup_snmpd_action != "upgrade"
 
 - name: "untar /var/tmp/setup_snmpd.tar.gz to {{ setup_snmpd_dir }}"
   changed_when: false
@@ -44,11 +48,15 @@
     dest: "{{ setup_snmpd_dir }}"
     owner: root
     group: root
+  when:
+    - setup_snmpd_action != "upgrade"
 
 - name: "stat {{ setup_snmpd_dir}}/setup-snmpd"
   register: stat_setup_snmpd
   stat:
     path: "{{ setup_snmpd_dir }}/setup-snmpd"
+  when:
+    - setup_snmpd_action != "upgrade"
 
 - name: "[check] execute {{ setup_snmpd_dir }}/setup-snmpd check"
   shell: "{{ setup_snmpd_dir }}/setup-snmpd check 2>&1 | tee /var/tmp/ansible-snmpd-check.log"
@@ -56,18 +64,23 @@
   failed_when: "check_setup_snmpd_result.rc != 0"
   changed_when: '"NOTICE" in check_setup_snmpd_result.stdout'
   when:
+    - setup_snmpd_action != "upgrade"
     - stat_setup_snmpd.stat.executable
 
 - name: "debug output for {{ setup_snmpd_dir }}/setup-snmpd check"
   debug:
     var: check_setup_snmpd_result
     verbosity: 2
+  when:
+    - setup_snmpd_action != "upgrade"
 
 - name: "remove {{ setup_snmpd_dir }}"
   changed_when: false
   file:
     path: "{{ setup_snmpd_dir }}"
     state: absent
+  when:
+    - setup_snmpd_action != "upgrade"
 
 #
 # install or upgrade
