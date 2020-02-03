@@ -786,10 +786,9 @@ if [ ${#Snmpd_Conf_Dir} -gt 0 ] && [ -d "${Snmpd_Conf_Dir}" ]; then
                     _echo "chown -R ${Snmpd_User}:${Snmpd_Group} '${Snmpd_Conf_Dir}' failed" WARNING
                 fi
 
+                find "${Snmpd_Conf_Dir}/" -type f 2> /dev/null | xargs chmod 0640 &> /dev/null
+                find "${Snmpd_Conf_Dir}/" -type d 2> /dev/null | xargs chmod 0750 &> /dev/null
             fi
-
-            find "${Snmpd_Conf_Dir}/" -type f 2> /dev/null | xargs chmod 0640 &> /dev/null
-            find "${Snmpd_Conf_Dir}/" -type d 2> /dev/null | xargs chmod 0750 &> /dev/null
         fi
     else
         _echo "invalid '${Snmpd_Conf_Dir}' directory not in /etc" ERROR
