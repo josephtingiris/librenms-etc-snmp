@@ -85,6 +85,13 @@ if [ ! -d "${Snmpd_Conf_Dir}" ]; then
     aborting "${Snmpd_Conf_Dir} not found"
 fi
 
+[ ${#Snmpd_Conf_Extend_Dir} -eq 0 ] && Snmpd_Conf_Extend_Dir="${Snmpd_Conf_Dir}/librenms"
+
+if [ ! -d "${Snmpd_Conf_Extend_Dir}" ]; then
+    aborting "${Snmpd_Conf_Extend_Dir} not found"
+fi
+
+
 if [ -x "${Dirname}"/extend-info.sh ]; then
     for Extend_Name in distro hardware manufacturer serial; do
         "${Dirname}"/extend-info.sh "${Extend_Name}" &> /dev/null
@@ -110,7 +117,7 @@ if [ -x "${Dirname}"/extend-info.sh ]; then
                 if [ ${Install} -eq 0 ]; then
                     sed -Ei "/extend(.*)${Extend_OID}[[:space:]]/d" "${Snmpd_Conf}"
                     if [ $? -eq 0 ]; then
-                        echo "extend ${Extend_OID} ${Extend_Name} '${Snmpd_Conf_Dir}/extend-info.sh ${Extend_Name}'" >> "${Snmpd_Conf}"
+                        echo "extend ${Extend_OID} ${Extend_Name} '${Snmpd_Conf_Extend_Dir}/extend-info.sh ${Extend_Name}'" >> "${Snmpd_Conf}"
                         if [ $? -eq 0 ]; then
                             echo "+ extend ${Extend_OID} ${Extend_Name} installed."
                         else
@@ -129,13 +136,13 @@ unset -v Extend_Name Extend_RC
 
 while read Extend_Check; do
     Extend_Basename=${Extend_Check##*/}
-    Extend_Exec="${Snmpd_Conf_Dir}/${Extend_Basename}"
+    Extend_Exec="${Snmpd_Conf_Extend_Dir}/${Extend_Basename}"
     Extend_Name=${Extend_Basename}
     Extend_Name=${Extend_Name//.bash/}
     Extend_Name=${Extend_Name//.sh/}
     Extend_Name=${Extend_Name//.php/}
     Extend_Name=${Extend_Name//.pl/}
-    Extend_Conf="${Snmpd_Conf_Dir}/${Extend_Name}.conf"
+    Extend_Conf="${Snmpd_Conf_Extend_Dir}/${Extend_Name}.conf"
     Extend_Name=${Extend_Name/extend-/}
     Extend_Name=${Extend_Name/custom-/}
 
