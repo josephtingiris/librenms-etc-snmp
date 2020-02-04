@@ -37,7 +37,7 @@
 #
 
 if [ "${USER}" != "root" ]; then
-    printf "\naborting ... this script must be run as root.\n\n"; exit 1
+    printf "\naborting ... this script must be run as root (USER=${USER}).\n\n"; exit 1
 fi
 
 #
