@@ -605,7 +605,7 @@ if [ "${Setup_Snmpd_D}" == "0" ]; then
         while read Setup_Snmp_D; do
             _echo "sourcing ${Setup_Snmp_D}" OK
             source "${Setup_Snmp_D}"
-        done <<< "$(grep -l ^"#\!.*bash" ${0}.d/* | xargs grep -l "this script was executed, it must be sourced" | sort)"
+        done <<< "$(grep -l ^"#\!/.*bash" ${0}.d/* | xargs -r grep -l "this script was executed, it must be sourced" | sort)"
         unset -v Setup_Snmp_D
     fi
 fi
