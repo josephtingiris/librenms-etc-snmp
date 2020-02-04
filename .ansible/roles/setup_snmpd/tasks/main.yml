@@ -60,6 +60,8 @@
 
 - name: "[check] execute {{ setup_snmpd_dir }}/setup-snmpd check"
   shell: "{{ setup_snmpd_dir }}/setup-snmpd check 2>&1 | tee /var/tmp/ansible-snmpd-check.log"
+  become: true
+  become_user: root
   register: check_setup_snmpd_result
   failed_when: "check_setup_snmpd_result.rc != 0"
   changed_when: '"NOTICE" in check_setup_snmpd_result.stdout'
@@ -161,6 +163,8 @@
 
 - name: "[{{ setup_snmpd_action }}] execute {{ install_setup_snmpd_dir }}/setup-snmpd install"
   shell: "{{ install_setup_snmpd_dir }}/setup-snmpd install 2>&1 | tee /var/tmp/ansible-snmpd-install.log"
+  become: true
+  become_user: root
   register: install_setup_snmpd_result
   failed_when: "install_setup_snmpd_result.rc != 0"
   changed_when: '"NOTICE" in install_setup_snmpd_result.stdout'
