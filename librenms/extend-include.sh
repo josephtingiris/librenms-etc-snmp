@@ -58,8 +58,11 @@ function _echo() {
         status_message="[${2^^}]"
     fi
 
+    [ ${#WHostname} -eq 0 ] && Hostname=$(hostname -s)
+
     let Steps=${Steps}+1
-    printf "[$(date)] ${Basename} ${Hostname} %2s %-71s %s\n" "${Steps}" "${1}" "${status_message}"
+    printf "[$(date)] ${Hostname} %2s %-71s %s\n" "${Steps}" "${1}" "${status_message}"
+    export Steps
 
     if [ "${status_message}" == "[WARNING]" ]; then
         let Warnings=${Warnings}+1
