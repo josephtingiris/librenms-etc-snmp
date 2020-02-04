@@ -645,12 +645,12 @@ fi
 #
 
 if [ ${Tmp_File_OK} -eq 0 ]; then
-    if [ ${#LibreNMS_Setup_Extend} -eq 0 ]; then
-        LibreNMS_Setup_Extend="${Dirname}/librenms/setup-snmpd-extend.sh"
+    if [ ${#Setup_Snmpd_Extend} -eq 0 ]; then
+        Setup_Snmpd_Extend="${Dirname}/librenms/setup-snmpd-extend.sh"
     fi
 
-    if [ -f "${LibreNMS_Setup_Extend}" ]; then
-        Snmpd_Conf=${Tmp_File} Snmpd_Conf_Dir=${Snmpd_Conf_Dir} bash "${LibreNMS_Setup_Extend}" install &> /dev/null
+    if [ -f "${Setup_Snmpd_Extend}" ]; then
+        Snmpd_Conf=${Tmp_File} Snmpd_Conf_Dir=${Snmpd_Conf_Dir} bash "${Setup_Snmpd_Extend}" install
         if [ $? -eq 0 ]; then
             _echo "extended ${Tmp_File} for librenms" OK
         else
