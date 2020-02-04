@@ -248,16 +248,19 @@ if [ ! -r "${Ansible_Files_Tar}" ]; then
 fi
 
 #
-# If found then use logname user's ansible.cfg
+# If found then use a particular ansible.cfg
 #
 
 if [ ${#Ansible_Cfg} -eq 0 ]; then
     if [ ${#ANSIBLE_CONFIG} -gt 0 ]; then
         Ansible_Cfg=${ANSIBLE_CONFIG}
     else
-        Ansible_Cfg="/home/$(logname)/.ansible.cfg"
+        Ansible_Cfg="${Dirname}/.ansible.cfg"
         if [ ! -r ${Ansible_Cfg} ]; then
-            unset -v Ansible_Cfg
+            Ansible_Cfg="/home/$(logname)/.ansible.cfg"
+            if [ ! -r ${Ansible_Cfg} ]; then
+                unset -v Ansible_Cfg
+            fi
         fi
     fi
 fi
