@@ -36,8 +36,12 @@
 # Init
 #
 
-if [ "${USER}" != "root" ]; then
-    printf "\naborting ... this script must be run as root (USER=${USER}).\n\n"; exit 1
+UID="$(id -u 2> /dev/null)"
+Group=$(id -gn 2> /dev/null)
+User=$(id -un 2> /dev/null)
+
+if [ "${UID}" != "0" ]; then
+    printf "\naborting ... this script must be run as root (${User}:${Group} UID=${UID}).\n\n"; exit 1
 fi
 
 #
@@ -679,12 +683,12 @@ fi
 [ ${#Snmpd_Group} -eq 0 ] && Snmpd_Group="root"
 [ ${#Snmpd_User} -eq 0 ] && Snmpd_User="root"
 
-if ! id -gn "${Snmpd_Group}" &> /dev/null; then
+if [ "${Group}" != "${Snmpd_Group}" ]; then
     _echo "group '${Snmpd_Group}' is invalid, using 'root'" WARNING
     Snmpd_Group="root"
 fi
 
-if ! id -un "${Snmpd_User}" &> /dev/null; then
+if [ "${User}" != "${Snmpd_User}" ]; then
     _echo "group '${Snmpd_User}' is invalid, using 'root'" WARNING
     Snmpd_User="root"
 fi
