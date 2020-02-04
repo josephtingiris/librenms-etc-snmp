@@ -36,12 +36,12 @@
 # Init
 #
 
-UID="$(id -u 2> /dev/null)"
 Group=$(id -gn 2> /dev/null)
 User=$(id -un 2> /dev/null)
+UserID="$(id -u 2> /dev/null)"
 
-if [ "${UID}" != "0" ]; then
-    printf "\naborting ... this script must be run as root (${User}:${Group} UID=${UID}).\n\n"; exit 1
+if [ "${UserID}" != "0" ]; then
+    printf "\naborting ... this script must be run as root (${User}:${Group} UserID=${UserID}).\n\n"; exit 1
 fi
 
 #
