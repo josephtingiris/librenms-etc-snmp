@@ -167,7 +167,8 @@ if [ ${#Dirname} -eq 0 ]; then
     aborting "invalid Dirname (readlink not found?)"
 fi
 
-Extend_Include_Env="${Dirname}/${Basename%.*}.env"
+Extend_Env="${Dirname}/${Basename%.*}.env"
+Extend_Ignore="${Dirname}/${Basename%.*}.ignore"
 
 [ ${#Tmp_Dir} -eq 0 ] && Tmp_Dir="/var/tmp"
 [ ! -w "${Tmp_Dir}" ] && Tmp_Dir="/tmp"
@@ -181,7 +182,8 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 debugecho "${BASH_SOURCE} sourced" 1
 debugecho "Tmp_File = ${Tmp_File}" 2
-debugecho "Extend_Include_Env = ${Extend_Include_Env}" 3
+debugecho "Extend_Env = ${Extend_Env}" 3
+debugecho "Extend_Ignore = ${Extend_Ignore}" 3
 
 debugecho "Basename = ${Basename}" 10
 debugecho "Dirname = ${Dirname}" 10
