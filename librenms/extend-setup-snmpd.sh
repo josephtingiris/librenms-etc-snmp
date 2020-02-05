@@ -53,6 +53,10 @@ else
     exit 1
 fi
 
+if [ -r "${Extend_Ignore}" ]; then
+    exit 0
+fi
+
 if [ -r "${Extend_Env}" ]; then
     source "${Extend_Env}"
 fi
