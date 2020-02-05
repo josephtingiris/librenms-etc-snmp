@@ -49,8 +49,8 @@ else
     exit 1
 fi
 
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 set -o pipefail

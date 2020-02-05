@@ -77,8 +77,8 @@ else
     exit 1
 fi
 
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 phpfpm_response=($(curl --silent --fail ${opts} "${url}" 2> /dev/null))

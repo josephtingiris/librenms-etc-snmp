@@ -53,8 +53,8 @@ else
     exit 1
 fi
 
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 # .1.3.6.1.4.1.2021.7890.1 distro

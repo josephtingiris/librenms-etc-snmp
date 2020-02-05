@@ -61,8 +61,8 @@ else
 fi
 
 # if it exists and is readable then source $0.env
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 Install=2
@@ -108,8 +108,8 @@ fi
 [ ${#Get_Templates} -eq 0 ] && Get_Templates="${Setup_Snmpd_Dir}/templates/get-templates.sh"
 
 # if it exists and is readable then source $0.env
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 #

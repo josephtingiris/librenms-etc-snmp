@@ -187,8 +187,8 @@ else
 fi
 
 # if it exists and is readable then source $0.env
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 Install=1
@@ -211,8 +211,8 @@ fi
 [ ${#Snmpd_Conf} -eq 0 ] && Snmpd_Conf=/etc/snmp/snmpd.conf
 
 # if it exists and is readable then source $0.env
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 #
@@ -495,7 +495,7 @@ if [ ${#Get_URL} -gt 0 ] && [ ${#Snmpd_Conf_URL} -gt 0 ]; then
         Tmp_File_OK=0
     fi
 else
-    debugecho "url not set in '${Extend_Include_Env}'" 10
+    debugecho "url not set in '${Extend_Env}'" 10
 fi
 
 #

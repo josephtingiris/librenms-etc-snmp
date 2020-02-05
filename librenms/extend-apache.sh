@@ -74,8 +74,8 @@ else
     exit 1
 fi
 
-if [ -r "${Extend_Include_Env}" ]; then
-    source "${Extend_Include_Env}"
+if [ -r "${Extend_Env}" ]; then
+    source "${Extend_Env}"
 fi
 
 wget "http://localhost/server-status?auto" -o /dev/null -O ${Tmp_File} &> /dev/null # wget is slightly faster than curl
