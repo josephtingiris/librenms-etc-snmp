@@ -50,7 +50,7 @@ else
 fi
 
 if [ -r "${Extend_Ignore}" ]; then
-    exit 0
+    exit 2
 fi
 
 if [ -r "${Extend_Env}" ]; then
