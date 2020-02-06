@@ -1,2 +1,3 @@
+*.jjt
 .ansible.cfg
 inventory
