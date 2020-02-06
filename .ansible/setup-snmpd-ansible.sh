@@ -154,8 +154,6 @@ fi
 #
 # Check ansible tasks exists
 #
-# Check ansible tasks exists
-#
 
 if [ -d "${Ansible_Tasks_Dir}" ]; then
     _echo "using '${Ansible_Tasks_Dir}' for tasks"
