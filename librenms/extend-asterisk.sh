@@ -68,7 +68,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "<<<asterisk>>>"
-${Asterisk} -rx "core show channels" | awk '/active calls/ { print "Calls=" $1 } /active channels/ { print "Channels=" $1}'
+${Asterisk} -rx "core show channels" | awk '/active call/ { print "Calls=" $1 } /active channels/ { print "Channels=" $1}'
 ${Asterisk} -rx 'sip show peers' | awk '/sip peers/ { print "SipPeers=" $1 "\nSipMonOnline=" $5 "\nSipMonOffline=" $7 "\nSipUnMonOnline=" $10 "\nSipUnMonOffline=" $12}'
 ${Asterisk} -rx 'iax2 show peers' | awk '/iax2 peers/ { gsub("\\[",""); gsub("\\]",""); print "Iax2Peers=" $1 "\nIax2Online=" $4 "\nIax2Offline=" $6 "\nIax2Unmonitored=" $8}'
 
