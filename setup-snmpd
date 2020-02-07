@@ -447,7 +447,7 @@ if [ ${#Get_URL} -eq 0 ] || [ ${#Get_URL_Args} -eq 0 ]; then
         fi
 
         if [ "${Get_URL}" == "wget" ]; then
-            Get_URL_Args="-O"
+            Get_URL_Args="--timeout=15 --tries=3 -O"
         fi
 
         Get_URL=$(type -p ${Get_URL} 2> /dev/null)
