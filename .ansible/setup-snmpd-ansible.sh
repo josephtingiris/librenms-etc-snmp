@@ -36,7 +36,7 @@
 #
 
 function usage() {
-    printf "\nusage: $0 <check|install|inventory|upgrade> <host limit pattern>\n\n"; exit 1
+    printf "\nusage: $0 <check|install|upgrade> [inventory] <host limit pattern>\n\n"; exit 1
 }
 
 # for more, see extend.include.sh
