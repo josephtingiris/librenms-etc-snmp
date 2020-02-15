@@ -107,22 +107,13 @@
     - setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
     - check_setup_snmpd_result.changed or setup_snmpd_action == "upgrade"
 
-- name: "[{{ setup_snmpd_action }}] stat {{ install_setup_snmpd_dir }}/snmpd.conf"
-  register: stat_etc_snmpd_conf
-  stat:
-    path: "{{ install_setup_snmpd_dir }}/snmpd.conf"
-  when:
-    - setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
-    - check_setup_snmpd_result.changed or setup_snmpd_action == "upgrade"
-    - stat_etc_snmp.stat.exists
-
 - name: "[{{ setup_snmpd_action }}] backup /etc/snmp/snmpd.conf to /var/tmp/setup-snmpd-ansible.conf.bak"
   copy: src=/etc/snmp/snmpd.conf dest=/var/tmp/setup-snmpd-ansible.conf.bak owner=root group=root mode=0640 backup=yes remote_src=yes
   register: result_backup_snmpd_conf
   when:
     - setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
     - check_setup_snmpd_result.changed or setup_snmpd_action == "upgrade"
-    - stat_etc_snmpd_conf.stat.exists
+    - stat_etc_snmp.stat.exists
 
 - name: "[{{ setup_snmpd_action }}] remove {{ install_setup_snmpd_dir }}"
   changed_when: false
