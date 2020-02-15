@@ -103,9 +103,16 @@
   register: stat_etc_snmp
   stat:
     path: "{{ install_setup_snmpd_dir }}"
+    #when:
+      #- setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
+      #- check_setup_snmpd_result.changed or setup_snmpd_action == "upgrade"
+
+- name: "[{{ setup_snmpd_action }}] fail when install_setup_snmpd_dir is not defined"
+  fail:
+    msg: "{{ install_setup_snmpd_dir }} is missing, use upgrade"
   when:
-    - setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
-    - check_setup_snmpd_result.changed or setup_snmpd_action == "upgrade"
+    - setup_snmpd_action != "upgrade"
+    - stat_etc_snmp.stat.exists == False
 
 - name: "[{{ setup_snmpd_action }}] backup /etc/snmp/snmpd.conf to /var/tmp/setup-snmpd-ansible.conf.bak"
   copy: src=/etc/snmp/snmpd.conf dest=/var/tmp/setup-snmpd-ansible.conf.bak owner=root group=root mode=0640 backup=yes remote_src=yes
@@ -113,7 +120,7 @@
   when:
     - setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
     - check_setup_snmpd_result.changed or setup_snmpd_action == "upgrade"
-    - stat_etc_snmp.stat.exists
+    - stat_etc_snmp.stat.exists == True
 
 - name: "[{{ setup_snmpd_action }}] remove {{ install_setup_snmpd_dir }}"
   changed_when: false
@@ -174,6 +181,7 @@
 - name: "restart snmpd service"
   service:
     name: snmpd
+    enabled: yes
     state: restarted
   when:
     - setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
