@@ -36,7 +36,7 @@
 #
 
 function usage() {
-    printf "\nusage: $0 <check|install|upgrade> <host limit pattern>\n\n"; exit 1
+    printf "\nusage: $0 <check|install|inventory|upgrade> <host limit pattern>\n\n"; exit 1
 }
 
 # for more, see extend.include.sh
@@ -65,31 +65,47 @@ if [ -r "${Extend_Env}" ]; then
     source "${Extend_Env}"
 fi
 
+Limit=""
+
+Check=1
 Install=2
+Inventory=1
 Upgrade=1
 
-if [ "$1" == "install" ]; then
-    Install=0 # true
+while [[ $# -gt 0 ]]; do
+    Argument="$1"
     shift
-fi
-
-if [ "$1" == "check" ]; then
-    Install=1 # false
-    shift
-fi
-
-if [ "$1" == "upgrade" ]; then
-    Install=0 # true
-    Upgrade=0 # true
-    shift
-fi
-
-Limit="$1"
-shift
+    case "$Argument" in
+        "check" )
+            Check=0
+            Install=1
+            ;;
+        "install" )
+            Install=0
+            ;;
+        "inventory" )
+            Inventory=0
+            ;;
+        "upgrade" )
+            Install=0
+            Upgrade=0
+            ;;
+        *)
+            Limit+="${Argument} "
+            ;;
+    esac
+done
 
 if [ ${#Limit} -eq 0 ] || [ ${Install} -eq 2 ]; then
     usage
 fi
+
+# multiple limits
+Limit="${Limit// /,}"
+Limit="${Limit%,*}"
+
+echo "Limit=${Limit}, Check=${Check}, Install=${Install}, Inventory=${Inventory}, Upgrade=${Upgrade}"
+echo
 
 #
 # Init Environment Defaults
@@ -126,7 +142,7 @@ fi
 # Check ansible inventory exists
 #
 
-if [ -f "${Ansible_Inventory}" ]; then
+if [ -f "${Ansible_Inventory}" ] && [ ${Inventory} -eq 0 ]; then
     rm -f "${Ansible_Inventory}"
     if [ $? -eq 0 ]; then
         _echo "removed '${Ansible_Inventory}'"
