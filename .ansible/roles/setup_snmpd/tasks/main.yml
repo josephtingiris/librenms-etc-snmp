@@ -117,6 +117,7 @@
 - name: "[{{ setup_snmpd_action }}] backup /etc/snmp/snmpd.conf to /var/tmp/setup-snmpd-ansible.conf.bak"
   copy: src=/etc/snmp/snmpd.conf dest=/var/tmp/setup-snmpd-ansible.conf.bak owner=root group=root mode=0640 backup=yes remote_src=yes
   register: result_backup_snmpd_conf
+  changed_when: false
   when:
     - setup_snmpd_action == "install" or setup_snmpd_action == "upgrade"
     - check_setup_snmpd_result.changed or setup_snmpd_action == "upgrade"
