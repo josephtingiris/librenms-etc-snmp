@@ -20,6 +20,7 @@
 # Dependencies:
 # extend-include.sh
 # curl or wget
+# pidof
 
 #
 # 20200102, joseph.tingiris@gmail.com, created
@@ -82,7 +83,11 @@ if [ -r "${Extend_Env}" ]; then
     source "${Extend_Env}"
 fi
 
-wget "http://localhost/server-status?auto" -o /dev/null -O ${Tmp_File} &> /dev/null # wget is slightly faster than curl
+if ! pidof httpd &> /dev/null; then
+    exit 3
+fi
+
+wget "http://localhost/server-status?auto" -o /dev/null --timeout=15 --tries=3 -O ${Tmp_File} &> /dev/null # wget is slightly faster than curl
 RC=$?
 if [ ${RC} -ne 0 ]; then
     curl --silent --fail "http://localhost/server-status?auto" -o ${Tmp_File} &> /dev/null
