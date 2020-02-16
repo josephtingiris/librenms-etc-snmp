@@ -4,6 +4,7 @@
 !README.md
 !LICENSE*
 !setup-snmpd
+!setup-snmpd.service
 !setup-snmpd.version
 /*/
 !/.ansible/

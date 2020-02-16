@@ -1,0 +1,13 @@
+[Unit]
+After=multi-user.target
+After=rc-local.service
+Description=/etc/snmp/setup-snmpd install
+IgnoreOnIsolate=yes
+
+[Service]
+ExecStart=/etc/snmp/setup-snmpd install
+Type=oneshot
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

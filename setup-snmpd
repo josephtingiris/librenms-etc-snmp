@@ -26,6 +26,7 @@
 # hostname
 # id
 # pidof
+# timeout
 # touch
 
 #
@@ -51,7 +52,6 @@ fi
 function restartService() {
     local service_name="$1"
 
-    local restart_cmd restart_cmds restart_exec
     local restart_ok=1
     local restart_rc=1
 
@@ -60,30 +60,19 @@ function restartService() {
     fi
 
     if [ ${Install} -eq 0 ]; then
-        restart_cmds=(systemctl service)
-        for restart_cmd in ${restart_cmds[@]}; do
-            restart_exec=$(type -p ${restart_cmd} 2> /dev/null)
-            if [ ${#restart_exec} -gt 0 ] && [ -x "${restart_exec}" ]; then
-                restart_ok=0
-                break
-            else
-                unset -v restart_exec
-            fi
-        done
+        if [ ${restart_ok} -eq 0 ] && [ ${#Service_Exec} -gt 0 ]; then
 
-        if [ ${restart_ok} -eq 0 ] && [ ${#restart_exec} -gt 0 ]; then
-
-            if [ "${restart_cmd}" == "systemctl" ]; then
-                ${restart_exec} restart ${service_name} &> /dev/null
+            if [ "${Service_Cmd}" == "systemctl" ]; then
+                ${Service_Exec} restart ${service_name} &> /dev/null
                 restart_rc=$?
             fi
 
-            if [ "${restart_cmd}" == "service" ]; then
-                ${restart_exec} ${service_name} restart &> /dev/null
+            if [ "${Service_Cmd}" == "service" ]; then
+                ${Service_Exec} ${service_name} restart &> /dev/null
                 restart_rc=$?
             fi
 
-            debugecho "restart_cmd=${restart_cmd}, restart_exec=${restart_exec}, service_name=${service_name}, rc=${restart_rc}" 10
+            debugecho "Service_Cmd=${Service_Cmd}, Service_Exec=${Service_Exec}, service_name=${service_name}, rc=${restart_rc}" 10
             return ${restart_rc}
         fi
     fi
@@ -355,6 +344,28 @@ if [ ${#Required_Packages} -gt 0 ]; then
         fi
     done
     unset -v Required_Package
+fi
+
+#
+# Validate service executable
+#
+
+Service_Cmds=(systemctl service)
+for Service_Cmd in ${Service_Cmds[@]}; do
+    Service_Exec=$(type -p ${Service_Cmd} 2> /dev/null)
+    if [ ${#Service_Exec} -gt 0 ] && [ -x "${Service_Exec}" ]; then
+        restart_ok=0
+        break
+    else
+        unset -v Service_Exec
+    fi
+done
+
+if [ ${#Service_Cmd} -eq 0 ] || [ ${#Service_Exec} -eq 0 ]; then
+    _echo "service command is missing" WARNING
+    unset -v Service_Cmd
+else
+    _echo "service command is '${Service_Cmd}' (${Service_Exec})" OK
 fi
 
 #
@@ -804,12 +815,50 @@ else
 fi
 
 #
+# If this machine has systemd then install setup-snmpd.service
+#
+
+if [ -d /etc/systemd/system ]; then
+    Systemd=0
+else
+    Systemd=1
+fi
+
+if [ ${Systemd} -eq 0 ] && [ "${Service_Cmd}" == "systemctl" ]; then
+    _echo "machine uses systemd" OK
+    Setup_Snmpd_Service="${0}.service"
+    Setup_Snmpd_Service_Basename=${Setup_Snmpd_Service##*/}
+    if [ -r "${Setup_Snmpd_Service}" ]; then
+        if [ ${Install} -eq 0 ]; then
+            cp "${Setup_Snmpd_Service}" "/etc/systemd/system/${Setup_Snmpd_Service_Basename}"
+            if [ $? -eq 0 ]; then
+                _echo "updated '/etc/systemd/system/${Setup_Snmpd_Service_Basename}'" OK
+                timeout 10 ${Service_Exec} daemon-reload &> /dev/null
+                timeout 10 ${Service_Exec} enable ${Setup_Snmpd_Service_Basename} &> /dev/null
+            fi
+        fi
+        if [ -r "/etc/systemd/system/${Setup_Snmpd_Service_Basename}" ]; then
+            _echo "service file '/etc/systemd/system/${Setup_Snmpd_Service_Basename}'" OK
+        else
+            if [ ${Install} -eq 0 ]; then
+                _echo "service file '/etc/systemd/system/${Setup_Snmpd_Service_Basename}'" OK
+            else
+                _echo "service file '/etc/systemd/system/${Setup_Snmpd_Service_Basename}' is missing" WARNING
+            fi
+        fi
+    else
+        _echo "service file '${Setup_Snmpd_Service}' is missing" WARNING
+    fi
+else
+    _echo "machine does not use systemd" OK
+fi
+
+#
 # Validate executables (in snmpd.conf directory); for install chmod if needed
 #
 
 executables "${Snmpd_Conf_Dir}"
 
-#
 #
 # Install snmpd.conf and restart snmpd
 #
