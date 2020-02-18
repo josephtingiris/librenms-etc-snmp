@@ -1,6 +1,14 @@
 [Unit]
-After=multi-user.target
+After=asterisk.service
+After=httpd.service
+After=memcached.service
+After=named.service
+After=php-fpm.service
 After=rc-local.service
+After=basic.target
+After=network.target
+After=nfs-client.target
+After=remote-fs.target
 Description=/etc/snmp/setup-snmpd install
 IgnoreOnIsolate=yes
 
