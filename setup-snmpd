@@ -237,6 +237,9 @@ fi
 if [ ${Distro_OK} -eq 1 ] && [ ${Distro_EL} -eq 1 ] && [[ "${Distro,,}" =~ enterprise.linux* ]]; then
     Distro_EL=0
 fi
+if [ ${Distro_OK} -eq 1 ] && [ ${Distro_EL} -eq 1 ] && [[ "${Distro,,}" =~ fedora* ]]; then
+    Distro_EL=0
+fi
 if [ ${Distro_OK} -eq 1 ] && [ ${Distro_EL} -eq 1 ] && [[ "${Distro,,}" =~ red.hat* ]]; then
     Distro_EL=0
 fi
