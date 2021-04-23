@@ -837,7 +837,7 @@ if [ ${Systemd} -eq 0 ] && [ "${Service_Cmd}" == "systemctl" ]; then
             if [ $? -eq 0 ]; then
                 _echo "updated '/etc/systemd/system/${Setup_Snmpd_Service_Basename}'" OK
                 timeout 10 ${Service_Exec} daemon-reload &> /dev/null
-                timeout 10 ${Service_Exec} enable ${Setup_Snmpd_Service_Basename} &> /dev/null
+                #timeout 10 ${Service_Exec} enable ${Setup_Snmpd_Service_Basename} &> /dev/null
             fi
         fi
         if [ -r "/etc/systemd/system/${Setup_Snmpd_Service_Basename}" ]; then
