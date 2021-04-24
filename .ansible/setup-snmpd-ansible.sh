@@ -46,7 +46,7 @@ function usage() {
 #
 
 Basename=${0##*/}
-Dirname=${0%/*}
+Dirname=$(dirname "$(readlink -e "${0}")")
 
 #
 # Main
