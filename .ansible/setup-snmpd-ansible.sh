@@ -153,7 +153,12 @@ if [ -x /opt/librenms/bin/librenms-ansible-inventory ]; then
     fi
 
     if [ ! -f "${Ansible_Inventory}" ]; then
-        /opt/librenms/bin/librenms-ansible-inventory > "${Ansible_Inventory}"
+        touch "${Ansible_Inventory}"
+        if [ -f "$HOME/.ansible/inventory" ]; then
+            cat "$HOME/.ansible/inventory" >> "${Ansible_Inventory}"
+            echo >> "${Ansible_Inventory}"
+        fi
+        /opt/librenms/bin/librenms-ansible-inventory >> "${Ansible_Inventory}"
         if [ $? -eq 0 ]; then
             _echo "creaated '${Ansible_Inventory}'"
         else
