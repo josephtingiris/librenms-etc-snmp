@@ -142,17 +142,17 @@ fi
 # Check ansible inventory exists
 #
 
-if [ -f "${Ansible_Inventory}" ] && [ ${Inventory} -eq 0 ]; then
-    rm -f "${Ansible_Inventory}"
-    if [ $? -eq 0 ]; then
-        _echo "removed '${Ansible_Inventory}'"
-    else
-        aborting "rm -f '${Ansible_Inventory}' failed"
+if [ -x /opt/librenms/bin/librenms-ansible-inventory ]; then
+    if [ -f "${Ansible_Inventory}" ] && [ ${Inventory} -eq 0 ]; then
+        rm -f "${Ansible_Inventory}"
+        if [ $? -eq 0 ]; then
+            _echo "removed '${Ansible_Inventory}'"
+        else
+            aborting "rm -f '${Ansible_Inventory}' failed"
+        fi
     fi
-fi
 
-if [ ! -f "${Ansible_Inventory}" ]; then
-    if [ -x /opt/librenms/bin/librenms-ansible-inventory ]; then
+    if [ ! -f "${Ansible_Inventory}" ]; then
         /opt/librenms/bin/librenms-ansible-inventory > "${Ansible_Inventory}"
         if [ $? -eq 0 ]; then
             _echo "creaated '${Ansible_Inventory}'"

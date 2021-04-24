@@ -1,2 +1,13 @@
-*
+/*
+!*example*
 !.gitignore
+!README.md
+!LICENSE*
+!setup-snmpd
+!setup-snmpd.service
+!setup-snmpd.version
+/*/
+!/.ansible/
+!/librenms/
+!/setup-snmpd.d/
+!/templates/
